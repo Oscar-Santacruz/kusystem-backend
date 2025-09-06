@@ -8,7 +8,7 @@ const envSchema = z.object({
   ALLOW_ORIGIN: z.string().optional(),
   PORT: z
     .string()
-    .transform((v) => (v ? Number(v) : 4000))
+    .transform((v) => (v ? Number(v) : 4001))
     .pipe(z.number().int().positive())
     .optional(),
 })
