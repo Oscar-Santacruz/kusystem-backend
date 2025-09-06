@@ -1,15 +1,8 @@
 import { Router } from 'express'
-import { z } from 'zod'
 import { prisma } from '../lib/prisma'
+import { clientSchema } from './schemas'
 
 const router = Router()
-
-const clientSchema = z.object({
-  name: z.string().min(1),
-  taxId: z.string().max(100).optional().nullable(),
-  phone: z.string().max(100).optional().nullable(),
-  email: z.string().email().max(200).optional().nullable(),
-})
 
 router.get('/', async (req, res, next) => {
   try {
