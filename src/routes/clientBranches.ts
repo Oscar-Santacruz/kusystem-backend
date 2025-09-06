@@ -1,14 +1,9 @@
 import { Router } from 'express'
-import { z } from 'zod'
 import { prisma } from '../lib/prisma'
+import { branchSchema } from './schemas'
 
 export const clientBranchesByClient = Router({ mergeParams: true })
 export const clientBranchesRouter = Router()
-
-const branchSchema = z.object({
-  name: z.string().min(1),
-  address: z.string().optional().nullable(),
-})
 
 clientBranchesByClient.get('/:clientId/branches', async (req, res, next) => {
   try {

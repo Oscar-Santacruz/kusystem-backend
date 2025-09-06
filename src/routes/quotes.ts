@@ -2,37 +2,9 @@ import { Router } from 'express'
 import { randomUUID } from 'crypto'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
+import { quoteSchema, quoteItemSchema, additionalChargeSchema } from './schemas'
 
 const router = Router()
-
-const quoteItemSchema = z.object({
-  productId: z.string().optional().nullable(),
-  description: z.string().min(1),
-  quantity: z.number().nonnegative(),
-  unitPrice: z.number().nonnegative(),
-  discount: z.number().nonnegative().optional().nullable(),
-  taxRate: z.number().min(0).max(1).optional().nullable(),
-})
-
-const additionalChargeSchema = z.object({
-  type: z.string().min(1),
-  amount: z.number().nonnegative(),
-})
-
-const quoteSchema = z.object({
-  status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'expired']).optional().nullable(),
-  customerId: z.string().optional().nullable(),
-  customerName: z.string().min(1),
-  branchId: z.string().optional().nullable(),
-  branchName: z.string().optional().nullable(),
-  issueDate: z.string().datetime().optional().nullable(),
-  dueDate: z.string().datetime().optional().nullable(),
-  currency: z.string().max(10).optional().nullable(),
-  notes: z.string().optional().nullable(),
-  printNotes: z.boolean().optional().nullable(),
-  items: z.array(quoteItemSchema).default([]),
-  additionalCharges: z.array(additionalChargeSchema).default([]).optional(),
-})
 
 function computeTotals(
   items: z.infer<typeof quoteItemSchema>[],
