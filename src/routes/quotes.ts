@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { quoteSchema, quoteItemSchema, additionalChargeSchema } from './schemas'
+import { getTenantId } from '../utils/tenant'
 
 const router = Router()
 
@@ -24,9 +25,13 @@ router.get('/', async (req, res, next) => {
     const pageSize = Number(req.query.pageSize ?? 20)
     const search = (req.query.search as string | undefined) ?? ''
 
-    const where = search
-      ? { customerName: { contains: search, mode: 'insensitive' as const } }
-      : {}
+    const tenantId = getTenantId(res)
+    const where = {
+      tenantId,
+      ...(search
+        ? { customerName: { contains: search, mode: 'insensitive' as const } }
+        : {}),
+    }
 
     const [rows, total] = await Promise.all([
       prisma.quote.findMany({
@@ -75,8 +80,9 @@ router.get('/', async (req, res, next) => {
 router.get('/:id', async (req, res, next) => {
   try {
     const { id } = req.params
-    const q = await prisma.quote.findUniqueOrThrow({
-      where: { id },
+    const tenantId = getTenantId(res)
+    const q = await prisma.quote.findFirstOrThrow({
+      where: { id, tenantId },
       include: { items: true, additionalCharges: true, branch: { select: { name: true } } },
     })
     const { items, additionalCharges, branch, ...rest } = q as any
@@ -108,6 +114,7 @@ router.post('/', async (req, res, next) => {
   try {
     const input = quoteSchema.parse(req.body)
     const totals = computeTotals(input.items, input.additionalCharges)
+    const tenantId = getTenantId(res)
 
     const created = await prisma.quote.create({
       data: {
@@ -127,6 +134,7 @@ router.post('/', async (req, res, next) => {
         taxTotal: totals.taxTotal,
         discountTotal: totals.discountTotal,
         total: totals.total,
+        tenantId,
         items: {
           createMany: {
             data: input.items.map((it) => ({
@@ -136,6 +144,7 @@ router.post('/', async (req, res, next) => {
               unitPrice: it.unitPrice,
               discount: it.discount ?? undefined,
               taxRate: it.taxRate ?? undefined,
+              tenantId,
             })),
           },
         },
@@ -145,6 +154,7 @@ router.post('/', async (req, res, next) => {
                 data: input.additionalCharges.map((ch) => ({
                   type: ch.type,
                   amount: ch.amount,
+                  tenantId,
                 })),
               },
             }
@@ -184,8 +194,13 @@ router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params
     const input = quoteSchema.partial().parse(req.body)
+    const tenantId = getTenantId(res)
 
     const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.quote.findFirst({ where: { id, tenantId } })
+      if (!existing) {
+        throw Object.assign(new Error('Presupuesto no encontrado'), { status: 404 })
+      }
       const totals = input.items || input.additionalCharges
         ? computeTotals(input.items ?? [], input.additionalCharges ?? [])
         : undefined
@@ -212,7 +227,7 @@ router.put('/:id', async (req, res, next) => {
       })
 
       if (input.items) {
-        await tx.quoteItem.deleteMany({ where: { quoteId: id } })
+        await tx.quoteItem.deleteMany({ where: { quoteId: id, tenantId } })
         await tx.quoteItem.createMany({
           data: input.items.map((it) => ({
             quoteId: id,
@@ -222,25 +237,27 @@ router.put('/:id', async (req, res, next) => {
             unitPrice: it.unitPrice,
             discount: it.discount ?? undefined,
             taxRate: it.taxRate ?? undefined,
+            tenantId,
           })),
         })
       }
 
       if (input.additionalCharges) {
-        await tx.quoteAdditionalCharge.deleteMany({ where: { quoteId: id } })
+        await tx.quoteAdditionalCharge.deleteMany({ where: { quoteId: id, tenantId } })
         if (input.additionalCharges.length > 0) {
           await tx.quoteAdditionalCharge.createMany({
             data: input.additionalCharges.map((ch) => ({
               quoteId: id,
               type: ch.type,
               amount: ch.amount,
+              tenantId,
             })),
           })
         }
       }
 
-      const finalQuote = await tx.quote.findUniqueOrThrow({
-        where: { id },
+      const finalQuote = await tx.quote.findFirstOrThrow({
+        where: { id, tenantId },
         include: { items: true, additionalCharges: true, branch: { select: { name: true } } },
       })
       return finalQuote
@@ -276,7 +293,11 @@ router.put('/:id', async (req, res, next) => {
 router.delete('/:id', async (req, res, next) => {
   try {
     const { id } = req.params
-    await prisma.quote.delete({ where: { id } })
+    const tenantId = getTenantId(res)
+    const result = await prisma.quote.deleteMany({ where: { id, tenantId } })
+    if (result.count === 0) {
+      return res.status(404).json({ error: 'Presupuesto no encontrado' })
+    }
     res.json({ ok: true })
   } catch (err) {
     next(err)
@@ -288,12 +309,16 @@ router.post('/:id/public/enable', async (req, res, next) => {
   try {
     const { id } = req.params
     const body = z.object({ enabled: z.boolean() }).parse(req.body)
-    const updated = await prisma.quote.update({
-      where: { id },
+    const tenantId = getTenantId(res)
+    const updated = await prisma.quote.updateMany({
+      where: { id, tenantId },
       data: { publicEnabled: body.enabled },
-      select: { id: true, publicId: true, publicEnabled: true },
     })
-    res.json(updated)
+    if (updated.count === 0) {
+      return res.status(404).json({ error: 'Presupuesto no encontrado' })
+    }
+    const refreshed = await prisma.quote.findFirstOrThrow({ where: { id, tenantId }, select: { id: true, publicId: true, publicEnabled: true } })
+    res.json(refreshed)
   } catch (err) {
     next(err)
   }
@@ -304,12 +329,16 @@ router.post('/:id/public/regenerate', async (req, res, next) => {
   try {
     const { id } = req.params
     const newPublicId = randomUUID()
-    const updated = await prisma.quote.update({
-      where: { id },
+    const tenantId = getTenantId(res)
+    const updated = await prisma.quote.updateMany({
+      where: { id, tenantId },
       data: { publicId: newPublicId, publicEnabled: true },
-      select: { id: true, publicId: true, publicEnabled: true },
     })
-    res.json(updated)
+    if (updated.count === 0) {
+      return res.status(404).json({ error: 'Presupuesto no encontrado' })
+    }
+    const refreshed = await prisma.quote.findFirstOrThrow({ where: { id, tenantId }, select: { id: true, publicId: true, publicEnabled: true } })
+    res.json(refreshed)
   } catch (err) {
     next(err)
   }
