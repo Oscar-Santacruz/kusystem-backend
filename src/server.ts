@@ -1,4 +1,4 @@
-import 'dotenv/config'
+import { Sentry, newrelic } from './instrumentation'
 import express from 'express'
 import cors from 'cors'
 import clientsRouter from './routes/clients'
@@ -9,6 +9,7 @@ import swaggerRouter from './docs/swagger'
 import publicRouter from './routes/public'
 
 const app = express()
+app.use(Sentry.Handlers.requestHandler())
 
 const envOrigins = (process.env.ALLOW_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean)
 const defaultOrigins = ['https://kusystem.ddns.net']
@@ -33,9 +34,11 @@ app.use('/quotes', quotesRouter)
 app.use('/public', publicRouter)
 app.use('/docs', swaggerRouter)
 
+app.use(Sentry.Handlers.errorHandler())
 // Error handler
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  newrelic.noticeError(err)
   console.error(err)
   const status = typeof err?.status === 'number' ? err.status : 500
   const message = err instanceof Error ? err.message : 'Internal Server Error'
@@ -44,6 +47,8 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 
 const port = Number(process.env.PORT || 4000)
 app.listen(port, () => {
+  newrelic.recordCustomEvent('server-start', { port })
+  Sentry.captureMessage(`Server started on port ${port}`)
   console.log(`API listening on http://localhost:${port}`)
   console.log(`CORS allowed origins: ${allowedOrigins.join(', ')}`)
 })
