@@ -1,0 +1,319 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "kuSystem Backend API",
+    "version": "0.1.0"
+  },
+  "servers": [
+    { "url": "http://localhost:4000", "description": "Local dev" }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "ok": { "type": "boolean" } } } } }
+          }
+        }
+      }
+    },
+    "/clients": {
+      "get": {
+        "summary": "List clients",
+        "parameters": [
+          { "in": "query", "name": "search", "schema": { "type": "string" } },
+          { "in": "query", "name": "page", "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of clients",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/Client" } },
+                    "total": { "type": "integer" },
+                    "page": { "type": "integer" },
+                    "pageSize": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create client",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ClientInput" } } }
+        },
+        "responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Client" } } } } }
+      }
+    },
+    "/clients/{id}": {
+      "get": {
+        "summary": "Get client",
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "Client", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Client" } } } } }
+      },
+      "put": {
+        "summary": "Update client",
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } } ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ClientInputPartial" } } }
+        },
+        "responses": { "200": { "description": "Updated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Client" } } } } }
+      },
+      "delete": {
+        "summary": "Delete client",
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "Deleted", "content": { "application/json": { "schema": { "type": "object", "properties": { "ok": { "type": "boolean" } } } } } } }
+      }
+    },
+    "/clients/{clientId}/branches": {
+      "get": {
+        "summary": "List branches by client",
+        "parameters": [
+          { "in": "path", "name": "clientId", "required": true, "schema": { "type": "string" } },
+          { "in": "query", "name": "page", "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of client branches",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/ClientBranch" } }, "total": { "type": "integer" }, "page": { "type": "integer" }, "pageSize": { "type": "integer" } } } } }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create client branch",
+        "parameters": [ { "in": "path", "name": "clientId", "required": true, "schema": { "type": "string" } } ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ClientBranchInput" } } } },
+        "responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ClientBranch" } } } } }
+      }
+    },
+    "/client-branches/{id}": {
+      "get": {
+        "summary": "Get branch",
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "Branch", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ClientBranch" } } } } }
+      },
+      "put": {
+        "summary": "Update branch",
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } } ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ClientBranchInputPartial" } } } },
+        "responses": { "200": { "description": "Updated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ClientBranch" } } } } }
+      },
+      "delete": {
+        "summary": "Delete branch",
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "Deleted", "content": { "application/json": { "schema": { "type": "object", "properties": { "ok": { "type": "boolean" } } } } } } }
+      }
+    },
+    "/products": {
+      "get": {
+        "summary": "List products",
+        "parameters": [
+          { "in": "query", "name": "search", "schema": { "type": "string" } },
+          { "in": "query", "name": "page", "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": { "200": { "description": "List of products", "content": { "application/json": { "schema": { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Product" } }, "total": { "type": "integer" }, "page": { "type": "integer" }, "pageSize": { "type": "integer" } } } } } }
+      },
+      "post": {
+        "summary": "Create product",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProductInput" } } } },
+        "responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Product" } } } } }
+      }
+    },
+    "/products/{id}": {
+      "get": {
+        "summary": "Get product",
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "Product", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Product" } } } } }
+      },
+      "put": {
+        "summary": "Update product",
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } } ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProductInputPartial" } } } },
+        "responses": { "200": { "description": "Updated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Product" } } } } }
+      },
+      "delete": {
+        "summary": "Delete product",
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "Deleted", "content": { "application/json": { "schema": { "type": "object", "properties": { "ok": { "type": "boolean" } } } } } } }
+      }
+    },
+    "/quotes": {
+      "get": {
+        "summary": "List quotes",
+        "parameters": [
+          { "in": "query", "name": "search", "schema": { "type": "string" } },
+          { "in": "query", "name": "page", "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "pageSize", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": { "200": { "description": "List of quotes", "content": { "application/json": { "schema": { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Quote" } }, "total": { "type": "integer" }, "page": { "type": "integer" }, "pageSize": { "type": "integer" } } } } } }
+      },
+      "post": {
+        "summary": "Create quote",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/QuoteInput" } } } },
+        "responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Quote" } } } } }
+      }
+    },
+    "/quotes/{id}": {
+      "get": {
+        "summary": "Get quote",
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "Quote", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Quote" } } } } }
+      },
+      "put": {
+        "summary": "Update quote",
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } } ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/QuoteInputPartial" } } } },
+        "responses": { "200": { "description": "Updated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Quote" } } } } }
+      },
+      "delete": {
+        "summary": "Delete quote",
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "Deleted", "content": { "application/json": { "schema": { "type": "object", "properties": { "ok": { "type": "boolean" } } } } } } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Client": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "taxId": { "type": "string", "nullable": true },
+          "phone": { "type": "string", "nullable": true },
+          "email": { "type": "string", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ClientInput": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "taxId": { "type": "string", "nullable": true },
+          "phone": { "type": "string", "nullable": true },
+          "email": { "type": "string", "nullable": true }
+        }
+      },
+      "ClientInputPartial": { "$ref": "#/components/schemas/ClientInput" },
+      "ClientBranch": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "clientId": { "type": "string" },
+          "name": { "type": "string" },
+          "address": { "type": "string", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ClientBranchInput": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "address": { "type": "string", "nullable": true }
+        }
+      },
+      "ClientBranchInputPartial": { "$ref": "#/components/schemas/ClientBranchInput" },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "sku": { "type": "string", "nullable": true },
+          "name": { "type": "string" },
+          "unit": { "type": "string", "nullable": true },
+          "price": { "type": "number" },
+          "taxRate": { "type": "number", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ProductInput": {
+        "type": "object",
+        "required": ["name", "price"],
+        "properties": {
+          "sku": { "type": "string", "nullable": true },
+          "name": { "type": "string" },
+          "unit": { "type": "string", "nullable": true },
+          "price": { "type": "number" },
+          "taxRate": { "type": "number", "nullable": true }
+        }
+      },
+      "ProductInputPartial": { "$ref": "#/components/schemas/ProductInput" },
+      "QuoteItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "productId": { "type": "string", "nullable": true },
+          "description": { "type": "string" },
+          "quantity": { "type": "number" },
+          "unitPrice": { "type": "number" },
+          "discount": { "type": "number", "nullable": true },
+          "taxRate": { "type": "number", "nullable": true }
+        }
+      },
+      "QuoteItemInput": {
+        "type": "object",
+        "required": ["description", "quantity", "unitPrice"],
+        "properties": {
+          "productId": { "type": "string", "nullable": true },
+          "description": { "type": "string" },
+          "quantity": { "type": "number" },
+          "unitPrice": { "type": "number" },
+          "discount": { "type": "number", "nullable": true },
+          "taxRate": { "type": "number", "nullable": true }
+        }
+      },
+      "Quote": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "number": { "type": "string", "nullable": true },
+          "status": { "type": "string", "nullable": true },
+          "customerId": { "type": "string", "nullable": true },
+          "customerName": { "type": "string" },
+          "issueDate": { "type": "string", "format": "date-time", "nullable": true },
+          "dueDate": { "type": "string", "format": "date-time", "nullable": true },
+          "currency": { "type": "string", "nullable": true },
+          "notes": { "type": "string", "nullable": true },
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/QuoteItem" } },
+          "subtotal": { "type": "number", "nullable": true },
+          "taxTotal": { "type": "number", "nullable": true },
+          "discountTotal": { "type": "number", "nullable": true },
+          "total": { "type": "number", "nullable": true }
+        }
+      },
+      "QuoteInput": {
+        "type": "object",
+        "required": ["customerName", "items"],
+        "properties": {
+          "number": { "type": "string", "nullable": true },
+          "status": { "type": "string", "nullable": true },
+          "customerId": { "type": "string", "nullable": true },
+          "customerName": { "type": "string" },
+          "issueDate": { "type": "string", "format": "date-time", "nullable": true },
+          "dueDate": { "type": "string", "format": "date-time", "nullable": true },
+          "currency": { "type": "string", "nullable": true },
+          "notes": { "type": "string", "nullable": true },
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/QuoteItemInput" } }
+        }
+      },
+      "QuoteInputPartial": { "$ref": "#/components/schemas/QuoteInput" }
+    }
+  }
+}

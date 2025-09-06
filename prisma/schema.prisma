@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Client {
+  id        String         @id @default(cuid())
+  name      String
+  taxId     String?        @db.VarChar(100)
+  phone     String?        @db.VarChar(100)
+  email     String?        @db.VarChar(200)
+  branches  ClientBranch[]
+  quotes    Quote[]        @relation("ClientQuotes")
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model ClientBranch {
+  id        String   @id @default(cuid())
+  clientId  String
+  name      String
+  address   String?
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  quotes    Quote[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id        String   @id @default(cuid())
+  sku       String?  @db.VarChar(100)
+  name      String
+  unit      String?  @db.VarChar(50)
+  price     Decimal  @db.Decimal(18, 2)
+  taxRate   Decimal? @db.Decimal(5, 4)
+  priceIncludesTax Boolean @default(false)
+  items     QuoteItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Quote {
+  id            String      @id @default(cuid())
+  number        String?     @unique @default(dbgenerated("nextval('quote_number_seq')::text"))
+  status        String?     @db.VarChar(20)
+  customerId    String?
+  customerName  String
+  // Sucursal seleccionada para el presupuesto
+  branchId      String?
+  branchName    String?
+  issueDate     DateTime?
+  dueDate       DateTime?
+  currency      String?     @db.VarChar(10)
+  notes         String?
+  // Mostrar notas en impresión/PDF
+  printNotes    Boolean?    @default(true)
+  // Enlace público
+  publicId      String?     @unique @default(uuid())
+  publicEnabled Boolean     @default(false)
+  items         QuoteItem[]
+  additionalCharges QuoteAdditionalCharge[]
+  subtotal      Decimal?    @db.Decimal(18, 2)
+  taxTotal      Decimal?    @db.Decimal(18, 2)
+  discountTotal Decimal?    @db.Decimal(18, 2)
+  total         Decimal?    @db.Decimal(18, 2)
+  customer      Client?     @relation("ClientQuotes", fields: [customerId], references: [id], onDelete: SetNull)
+  branch        ClientBranch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model QuoteItem {
+  id          String   @id @default(cuid())
+  quoteId     String
+  productId   String?
+  description String
+  quantity    Decimal  @db.Decimal(18, 2)
+  unitPrice   Decimal  @db.Decimal(18, 2)
+  discount    Decimal? @db.Decimal(18, 2)
+  taxRate     Decimal? @db.Decimal(5, 4)
+  quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+}
+
+model QuoteAdditionalCharge {
+  id       String  @id @default(cuid())
+  quoteId  String
+  type     String
+  amount   Decimal @db.Decimal(18, 2)
+  quote    Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+}
