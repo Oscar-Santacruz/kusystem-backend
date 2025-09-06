@@ -1,0 +1,118 @@
+{
+  "info": {
+    "name": "kuSystem Multitenancy (Backend)",
+    "_postman_id": "2d2f9d9a-3b96-4e7d-9f71-1ef2c3e5f001",
+    "description": "Colección para probar health, organizaciones e invitaciones (magic link) con headers de usuario dev y X-Tenant-Id.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] }
+      }
+    },
+    {
+      "name": "Organizations",
+      "item": [
+        {
+          "name": "Create organization",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "x-user-sub", "value": "{{user_sub}}"},
+              {"key": "x-user-email", "value": "{{user_email}}"},
+              {"key": "x-user-name", "value": "{{user_name}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mi Empresa\",\n  \"slug\": \"mi-empresa\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/organizations", "host": ["{{base_url}}"], "path": ["organizations"] }
+          }
+        },
+        {
+          "name": "My organizations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "x-user-sub", "value": "{{user_sub}}"},
+              {"key": "x-user-email", "value": "{{user_email}}"},
+              {"key": "x-user-name", "value": "{{user_name}}"}
+            ],
+            "url": { "raw": "{{base_url}}/organizations/me", "host": ["{{base_url}}"], "path": ["organizations", "me"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invitations (private)",
+      "item": [
+        {
+          "name": "Create invitation (requires X-Tenant-Id)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-Tenant-Id", "value": "{{tenant_id}}"},
+              {"key": "x-user-sub", "value": "{{user_sub}}"},
+              {"key": "x-user-email", "value": "{{user_email}}"},
+              {"key": "x-user-name", "value": "{{user_name}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"invitee@example.com\",\n  \"role\": \"member\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/invitations", "host": ["{{base_url}}"], "path": ["invitations"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invitations (public)",
+      "item": [
+        {
+          "name": "Get invitation by token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/public/invitations/{{token}}", "host": ["{{base_url}}"], "path": ["public","invitations","{{token}}"] }
+          }
+        },
+        {
+          "name": "Accept invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "x-user-sub", "value": "{{user_sub}}"},
+              {"key": "x-user-email", "value": "{{user_email}}"},
+              {"key": "x-user-name", "value": "{{user_name}}"}
+            ],
+            "url": { "raw": "{{base_url}}/public/invitations/{{token}}/accept", "host": ["{{base_url}}"], "path": ["public","invitations","{{token}}","accept"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Example: Clients (requires X-Tenant-Id)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "X-Tenant-Id", "value": "{{tenant_id}}"}
+        ],
+        "url": { "raw": "{{base_url}}/clients", "host": ["{{base_url}}"], "path": ["clients"] }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:4001" },
+    { "key": "tenant_id", "value": "1" },
+    { "key": "user_sub", "value": "dev-user-1" },
+    { "key": "user_email", "value": "dev-user-1@example.com" },
+    { "key": "user_name", "value": "Dev User" },
+    { "key": "token", "value": "<rellenar token de invitación>" }
+  ]
+}

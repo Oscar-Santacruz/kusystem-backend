@@ -7,6 +7,71 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Tenant {
+  id        BigInt   @id @default(autoincrement())
+  name      String
+  slug      String?  @unique
+  createdByUserId String?
+  createdBy User?   @relation("Tenant_createdByUserId", fields: [createdByUserId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clients   Client[]
+  branches  ClientBranch[]
+  products  Product[]
+  quotes    Quote[]
+  items     QuoteItem[]
+  charges   QuoteAdditionalCharge[]
+
+  memberships Membership[]
+  invitations Invitation[]
+}
+
+model User {
+  id             String   @id @default(cuid())
+  authProviderId String   @unique // Auth0 sub
+  email          String   @unique
+  name           String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  memberships Membership[]
+  createdTenants Tenant[] @relation("Tenant_createdByUserId")
+  createdInvitations Invitation[] @relation("Invitation_createdByUser")
+}
+
+model Membership {
+  id            String   @id @default(cuid())
+  userId        String
+  tenantId      BigInt
+  role          String   @db.VarChar(20) // 'owner' | 'admin' | 'member'
+  createdAt     DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@index([tenantId])
+}
+
+model Invitation {
+  id         String   @id @default(cuid())
+  tenantId   BigInt
+  email      String
+  role       String   @db.VarChar(20)
+  token      String   @unique
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdByUserId String
+  createdAt  DateTime @default(now())
+
+  tenant  Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy User @relation("Invitation_createdByUser", fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([email])
+}
+
 model Client {
   id        String         @id @default(cuid())
   name      String
@@ -17,6 +82,12 @@ model Client {
   quotes    Quote[]        @relation("ClientQuotes")
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
+
+  tenantId  BigInt
+  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@unique([tenantId, taxId])
 }
 
 model ClientBranch {
@@ -28,6 +99,11 @@ model ClientBranch {
   quotes    Quote[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  tenantId  BigInt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }
 
 model Product {
@@ -41,11 +117,17 @@ model Product {
   items     QuoteItem[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  tenantId  BigInt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@unique([tenantId, sku])
 }
 
 model Quote {
   id            String      @id @default(cuid())
-  number        String?     @unique @default(dbgenerated("nextval('quote_number_seq')::text"))
+  number        String?     @default(dbgenerated("nextval('quote_number_seq')::text"))
   status        String?     @db.VarChar(20)
   customerId    String?
   customerName  String
@@ -71,6 +153,12 @@ model Quote {
   branch        ClientBranch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+
+  tenantId      BigInt
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@unique([tenantId, number])
 }
 
 model QuoteItem {
@@ -84,6 +172,11 @@ model QuoteItem {
   taxRate     Decimal? @db.Decimal(5, 4)
   quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  tenantId    BigInt
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }
 
 model QuoteAdditionalCharge {
@@ -92,4 +185,9 @@ model QuoteAdditionalCharge {
   type     String
   amount   Decimal @db.Decimal(18, 2)
   quote    Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  tenantId BigInt
+  tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }

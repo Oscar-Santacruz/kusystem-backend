@@ -23,10 +23,18 @@ const products: Array<{ sku: string; name: string; unit?: string; price: number;
 async function main() {
   console.log('Seeding products...')
 
+  // Asegurar tenant DEFAULT
+  const tenant = await prisma.tenant.upsert({
+    where: { id: 1n },
+    create: { name: 'DEFAULT' },
+    update: {},
+  })
+  const tenantId = tenant.id
+
   for (const p of products) {
     // Como sku no es único en el schema, hacemos un upsert manual buscando por sku primero.
     const existing = await prisma.product.findFirst({
-      where: { sku: p.sku },
+      where: { sku: p.sku, tenantId },
     })
 
     if (existing) {
@@ -44,6 +52,7 @@ async function main() {
     } else {
       await prisma.product.create({
         data: {
+          tenantId,
           sku: p.sku,
           name: p.name,
           unit: p.unit,
