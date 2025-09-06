@@ -12,6 +12,9 @@ API REST desacoplada para kuSystem. Stack: Node.js, TypeScript, Express, Prisma 
 DATABASE_URL=postgresql://postgres:password@localhost:5432/postgres?schema=public
 ALLOW_ORIGIN=http://localhost:5173
 PORT=4000
+SENTRY_DSN=
+NEW_RELIC_LICENSE_KEY=
+NEW_RELIC_APP_NAME=kusystem-backend
 ```
 
 2. Instalar dependencias:
