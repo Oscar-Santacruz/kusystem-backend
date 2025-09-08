@@ -13,6 +13,7 @@ const createOrgSchema = z.object({
     .min(3)
     .max(40)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  logoUrl: z.string().url().optional().nullable(),
 })
 
 // Crea organización (Tenant) y membresía owner
@@ -21,7 +22,7 @@ router.post('/', async (req, res, next) => {
     const cu = getCurrentUser(req)
     if (!cu?.authProviderId && !cu?.id) return res.status(401).json({ error: 'Unauthorized' })
 
-    const { name, slug } = createOrgSchema.parse(req.body)
+    const { name, slug, logoUrl } = createOrgSchema.parse(req.body)
 
     // Asegurar usuario local
     const user = await prisma.user.upsert({
@@ -38,6 +39,7 @@ router.post('/', async (req, res, next) => {
       data: {
         name,
         slug,
+        logoUrl,
         createdByUserId: user.id,
         memberships: {
           create: {
