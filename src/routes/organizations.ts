@@ -13,7 +13,9 @@ const createOrgSchema = z.object({
     .min(3)
     .max(40)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-  logoUrl: z.string().url().optional().nullable(),
+  // El frontend enviará la KEY del storage en el campo logoUrl (p. ej. "kusystem/mi-org/logo.png")
+  // Por eso no validamos como URL, solo que sea string razonable si viene.
+  logoUrl: z.string().min(3).optional().nullable(),
 })
 
 // Crea organización (Tenant) y membresía owner
