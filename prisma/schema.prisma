@@ -11,6 +11,7 @@ model Tenant {
   id        BigInt   @id @default(autoincrement())
   name      String
   slug      String?  @unique
+  logoUrl   String?
   createdByUserId String?
   createdBy User?   @relation("Tenant_createdByUserId", fields: [createdByUserId], references: [id])
   createdAt DateTime @default(now())

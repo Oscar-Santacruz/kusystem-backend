@@ -4,3 +4,4 @@ dist/
 /.pnpm-store
 /datos
 *.log
+newrelic_agent.log
