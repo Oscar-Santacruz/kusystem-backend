@@ -1,4 +1,7 @@
 node_modules/
 dist/
 .env
+/.pnpm-store
+/datos
+*.log
 newrelic_agent.log
