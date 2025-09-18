@@ -1,10 +1,11 @@
 import { Router } from 'express'
 import crypto from 'node:crypto'
 import { z } from 'zod'
-import { getPrisma } from '../prisma'
-import { getTenantId } from '../utils/tenant'
-import { getCurrentUser } from '../utils/auth'
-import { sendInvitationEmail } from '../lib/email'
+import { Prisma, PrismaClient } from '@prisma/client'
+import { getPrisma } from '../prisma.js'
+import { getTenantId } from '../utils/tenant.js'
+import { getCurrentUser } from '../utils/auth.js'
+import { sendInvitationEmail } from '../lib/email.js'
 
 export const invitationsRouter = Router()
 export const publicInvitationsRouter = Router()
@@ -116,7 +117,7 @@ publicInvitationsRouter.post('/:token/accept', async (req, res, next) => {
       },
     })
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>) => {
       await tx.membership.upsert({
         where: { userId_tenantId: { userId: user.id, tenantId: inv.tenantId } },
         update: { role: inv.role },

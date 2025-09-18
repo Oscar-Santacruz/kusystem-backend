@@ -1,9 +1,10 @@
 import { Router } from 'express'
 import { randomUUID } from 'crypto'
 import { z } from 'zod'
-import { prisma } from '../lib/prisma'
-import { quoteSchema, quoteItemSchema, additionalChargeSchema } from './schemas'
-import { getTenantId } from '../utils/tenant'
+import { Quote, QuoteItem, QuoteAdditionalCharge, PrismaClient } from '@prisma/client'
+import { prisma } from '../lib/prisma.js'
+import { quoteSchema, quoteItemSchema, additionalChargeSchema } from './schemas.js'
+import { getTenantId } from '../utils/tenant.js'
 
 const router = Router()
 
@@ -48,8 +49,8 @@ router.get('/', async (req, res, next) => {
       prisma.quote.count({ where }),
     ])
 
-    const data = rows.map((q) => {
-      const { items, additionalCharges, branch, ...rest } = q as any
+            const data = rows.map((q) => {
+      const { items, additionalCharges, branch, ...rest } = q;
       return {
         ...rest,
         branchName: rest.branchName ?? branch?.name ?? null,
@@ -57,14 +58,14 @@ router.get('/', async (req, res, next) => {
         taxTotal: q.taxTotal == null ? null : Number(q.taxTotal),
         discountTotal: q.discountTotal == null ? null : Number(q.discountTotal),
         total: q.total == null ? null : Number(q.total),
-        items: items.map((it: any) => ({
+        items: items.map((it: QuoteItem) => ({
           ...it,
           quantity: Number(it.quantity),
           unitPrice: Number(it.unitPrice),
           discount: it.discount == null ? null : Number(it.discount),
           taxRate: it.taxRate == null ? null : Number(it.taxRate),
         })),
-        additionalCharges: (additionalCharges ?? []).map((ch: any) => ({
+        additionalCharges: (additionalCharges ?? []).map((ch: QuoteAdditionalCharge) => ({
           ...ch,
           amount: Number(ch.amount),
         })),
@@ -85,7 +86,7 @@ router.get('/:id', async (req, res, next) => {
       where: { id, tenantId },
       include: { items: true, additionalCharges: true, branch: { select: { name: true } } },
     })
-    const { items, additionalCharges, branch, ...rest } = q as any
+            const { items, additionalCharges, branch, ...rest } = q;
     res.json({
       ...rest,
       branchName: rest.branchName ?? branch?.name ?? null,
@@ -93,14 +94,14 @@ router.get('/:id', async (req, res, next) => {
       taxTotal: q.taxTotal == null ? null : Number(q.taxTotal),
       discountTotal: q.discountTotal == null ? null : Number(q.discountTotal),
       total: q.total == null ? null : Number(q.total),
-      items: items.map((it: any) => ({
+      items: items.map((it: QuoteItem) => ({
         ...it,
         quantity: Number(it.quantity),
         unitPrice: Number(it.unitPrice),
         discount: it.discount == null ? null : Number(it.discount),
         taxRate: it.taxRate == null ? null : Number(it.taxRate),
       })),
-      additionalCharges: (additionalCharges ?? []).map((ch: any) => ({
+      additionalCharges: (additionalCharges ?? []).map((ch: QuoteAdditionalCharge) => ({
         ...ch,
         amount: Number(ch.amount),
       })),
@@ -163,8 +164,8 @@ router.post('/', async (req, res, next) => {
       include: { items: true, additionalCharges: true, branch: { select: { name: true } } },
     })
 
-    {
-      const { items, additionalCharges, branch, ...rest } = created as any
+        {
+      const { items, additionalCharges, branch, ...rest } = created;
       res.status(201).json({
         ...rest,
         branchName: rest.branchName ?? branch?.name ?? null,
@@ -172,14 +173,14 @@ router.post('/', async (req, res, next) => {
         taxTotal: created.taxTotal == null ? null : Number(created.taxTotal),
         discountTotal: created.discountTotal == null ? null : Number(created.discountTotal),
         total: created.total == null ? null : Number(created.total),
-        items: items.map((it: any) => ({
+        items: items.map((it: QuoteItem) => ({
           ...it,
           quantity: Number(it.quantity),
           unitPrice: Number(it.unitPrice),
           discount: it.discount == null ? null : Number(it.discount),
           taxRate: it.taxRate == null ? null : Number(it.taxRate),
         })),
-        additionalCharges: (additionalCharges ?? []).map((ch: any) => ({
+        additionalCharges: (additionalCharges ?? []).map((ch: QuoteAdditionalCharge) => ({
           ...ch,
           amount: Number(ch.amount),
         })),
@@ -196,7 +197,7 @@ router.put('/:id', async (req, res, next) => {
     const input = quoteSchema.partial().parse(req.body)
     const tenantId = getTenantId(res)
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>) => {
       const existing = await tx.quote.findFirst({ where: { id, tenantId } })
       if (!existing) {
         throw Object.assign(new Error('Presupuesto no encontrado'), { status: 404 })
@@ -263,8 +264,8 @@ router.put('/:id', async (req, res, next) => {
       return finalQuote
     })
 
-    {
-      const { items, additionalCharges, branch, ...rest } = result as any
+        {
+      const { items, additionalCharges, branch, ...rest } = result;
       res.json({
         ...rest,
         branchName: rest.branchName ?? branch?.name ?? null,
@@ -272,14 +273,14 @@ router.put('/:id', async (req, res, next) => {
         taxTotal: result.taxTotal == null ? null : Number(result.taxTotal),
         discountTotal: result.discountTotal == null ? null : Number(result.discountTotal),
         total: result.total == null ? null : Number(result.total),
-        items: items.map((it: any) => ({
+        items: items.map((it: QuoteItem) => ({
           ...it,
           quantity: Number(it.quantity),
           unitPrice: Number(it.unitPrice),
           discount: it.discount == null ? null : Number(it.discount),
           taxRate: it.taxRate == null ? null : Number(it.taxRate),
         })),
-        additionalCharges: (additionalCharges ?? []).map((ch: any) => ({
+        additionalCharges: (additionalCharges ?? []).map((ch: QuoteAdditionalCharge) => ({
           ...ch,
           amount: Number(ch.amount),
         })),

@@ -1,8 +1,9 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { getPrisma } from '../prisma'
-import { getTenantId } from '../utils/tenant'
-import { getCurrentUser } from '../utils/auth'
+import { Membership, User } from '@prisma/client'
+import { getPrisma } from '../prisma.js'
+import { getTenantId } from '../utils/tenant.js'
+import { getCurrentUser } from '../utils/auth.js'
 
 const prisma = getPrisma()
 const router = Router()
@@ -32,7 +33,7 @@ router.get('/', async (req, res, next) => {
       include: { user: true },
       orderBy: { createdAt: 'asc' },
     })
-    res.json({ data: members.map(m => ({
+    res.json({ data: members.map((m: Membership & { user: User }) => ({
       id: m.id,
       role: m.role,
       user: { id: m.userId, email: m.user.email, name: m.user.name },

@@ -1,7 +1,7 @@
 import { Router } from 'express'
-import { prisma } from '../lib/prisma'
-import { clientSchema } from './schemas'
-import { getTenantId } from '../utils/tenant'
+import { prisma } from '../lib/prisma.js'
+import { clientSchema } from './schemas.js'
+import { getTenantId } from '../utils/tenant.js'
 
 const router = Router()
 

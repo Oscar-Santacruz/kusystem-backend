@@ -4,4 +4,7 @@ dist/
 /.pnpm-store
 /datos
 *.log
-newrelic_agent.log
+newrelic_agent.logd
+prisma/migrations
+prisma/seed.ts
+/.env.docker

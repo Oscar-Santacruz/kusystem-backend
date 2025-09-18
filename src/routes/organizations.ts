@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { getPrisma } from '../prisma'
-import { getCurrentUser } from '../utils/auth'
+import { getPrisma } from '../prisma.js'
+import { getCurrentUser } from '../utils/auth.js'
 
 const router = Router()
 const prisma = getPrisma()

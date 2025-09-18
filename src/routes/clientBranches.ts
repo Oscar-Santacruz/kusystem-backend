@@ -1,7 +1,7 @@
 import { Router } from 'express'
-import { prisma } from '../lib/prisma'
-import { branchSchema } from './schemas'
-import { getTenantId } from '../utils/tenant'
+import { prisma } from '../lib/prisma.js'
+import { branchSchema } from './schemas.js'
+import { getTenantId } from '../utils/tenant.js'
 
 export const clientBranchesByClient = Router({ mergeParams: true })
 export const clientBranchesRouter = Router()

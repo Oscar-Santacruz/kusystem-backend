@@ -1,7 +1,8 @@
 import { Router } from 'express'
-import { prisma } from '../lib/prisma'
-import { productSchema } from './schemas'
-import { getTenantId } from '../utils/tenant'
+import { Product } from '@prisma/client'
+import { prisma } from '../lib/prisma.js'
+import { productSchema } from './schemas.js'
+import { getTenantId } from '../utils/tenant.js'
 
 const router = Router()
 
@@ -42,7 +43,7 @@ router.get('/', async (req, res, next) => {
       prisma.product.count({ where }),
     ])
 
-    const data = rows.map((p) => ({
+    const data = rows.map((p: Product) => ({
       ...p,
       price: Number(p.price),
       taxRate: p.taxRate == null ? null : Number(p.taxRate),

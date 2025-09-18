@@ -8,7 +8,7 @@ import {
   quoteSchema,
   quoteItemSchema,
   additionalChargeSchema,
-} from '../routes/schemas'
+} from '../routes/schemas.js'
 
 extendZodWithOpenApi(z)
 

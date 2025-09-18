@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { Prisma } from '@prisma/client'
-import { prisma } from '../lib/prisma'
-import { sanitizeQuote } from '../utils/sanitize'
+import { prisma } from '../lib/prisma.js'
+import { sanitizeQuote } from '../utils/sanitize.js'
 
 const router = Router()
 
