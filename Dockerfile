@@ -23,6 +23,9 @@ RUN pnpm prisma generate
 # Build the project
 RUN pnpm build
 
+# Prune devDependencies to keep only production deps in builder output
+RUN pnpm prune --prod
+
 # ---- DEBUG STEP ----
 # List the contents of the dist directory to see what was built
 RUN echo "Contenido del directorio dist:" && ls -la /app/dist
@@ -37,26 +40,15 @@ WORKDIR /app
 # Install OpenSSL, which is a dependency for Prisma to connect to the database.
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
-# Enable pnpm
-RUN corepack enable
-
-# Copy dependency definitions
-COPY package.json pnpm-lock.yaml ./
-
-# Install ALL dependencies (including devDependencies like 'prisma')
-RUN pnpm install --frozen-lockfile
-
-# Copy the prisma schema
-COPY prisma ./prisma
-
-# Generate the Prisma Client in the final stage
-RUN pnpm prisma generate
-
-# Copy the built application code from the builder stage
+## Copiamos artefactos listos desde el builder
+# Dependencias de producción (incluye Prisma CLI porque está en dependencies)
+COPY --from=builder /app/node_modules ./node_modules
+# Código compilado
 COPY --from=builder /app/dist ./dist
-
-# Prune (remove) devDependencies to keep the image lean
-RUN pnpm prune --prod
+# Esquema de Prisma (para migrate deploy)
+COPY prisma ./prisma
+# package.json solo a efectos de metadatos (no instalamos en esta etapa)
+COPY package.json ./package.json
 
 # Expose the application port (from your .env.docker)
 EXPOSE 4000
