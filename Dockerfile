@@ -50,7 +50,7 @@ RUN pnpm install --frozen-lockfile
 COPY prisma ./prisma
 
 # Generate the Prisma Client in the final stage
-RUN pnpm prisma generate
+#RUN pnpm prisma generate
 
 # Copy the built application code from the builder stage
 COPY --from=builder /app/dist ./dist
@@ -64,8 +64,8 @@ EXPOSE 4000
 # Copy the entrypoint script
 COPY entrypoint.sh .
 
-# Make the entrypoint script executable
-RUN chmod +x entrypoint.sh
+# Normalizás LF y das permisos
+RUN sed -i 's/\r$//' entrypoint.sh && chmod +x entrypoint.sh
 
 # Set the entrypoint
 ENTRYPOINT ["./entrypoint.sh"]

@@ -11,6 +11,7 @@ import { tenantMiddleware } from './utils/tenant.js'
 import organizationsRouter from './routes/organizations.js'
 import { invitationsRouter, publicInvitationsRouter } from './routes/invitations.js'
 import membersRouter from './routes/members.js'
+import analyticsRouter from './routes/analytics.js'
 
 const app = express()
 app.use(Sentry.Handlers.requestHandler())
@@ -54,6 +55,7 @@ app.use('/products', productsRouter)
 app.use('/quotes', quotesRouter)
 app.use('/invitations', invitationsRouter)
 app.use('/members', membersRouter)
+app.use('/analytics', analyticsRouter)
 
 app.use(Sentry.Handlers.errorHandler())
 // Error handler

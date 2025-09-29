@@ -1,0 +1,53 @@
+# syntax=docker/dockerfile:1.6
+# ---- Builder Stage ----
+FROM node:20 AS builder
+
+WORKDIR /app
+
+# Enable pnpm
+RUN corepack enable
+
+# Copy dependency definition files FIRST (better cache)
+COPY package.json pnpm-lock.yaml ./
+
+# Cache mount for pnpm store (persists between builds)
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm fetch
+
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm install --offline --frozen-lockfile
+
+# Copy source code (after deps to avoid cache invalidation)
+COPY . .
+
+# Generate Prisma Client (cached if schema unchanged)
+RUN --mount=type=cache,id=prisma-cache,target=/app/node_modules/.prisma \
+    pnpm prisma generate
+
+# Build the project
+RUN pnpm build
+
+# Prune devDependencies in builder
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm prune --prod
+
+# ---- Production Stage ----
+FROM node:20-slim
+
+WORKDIR /app
+
+# Install OpenSSL for Prisma
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
+# Copy artifacts from builder (no installs in runtime)
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY prisma ./prisma
+COPY package.json ./package.json
+
+# Copy and normalize entrypoint
+COPY entrypoint.sh .
+RUN sed -i 's/\r$//' entrypoint.sh && chmod +x entrypoint.sh
+
+EXPOSE 4000
+ENTRYPOINT ["./entrypoint.sh"]

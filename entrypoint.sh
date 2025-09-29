@@ -6,9 +6,9 @@ set -e
 
 # Run Prisma migrations
 echo "Running Prisma migrations..."
-pnpm prisma migrate deploy
+npx prisma migrate deploy
 echo "Prisma migrations completed."
 
 # Start the application
 echo "Starting the application..."
-exec pnpm start
+exec node dist/server.js

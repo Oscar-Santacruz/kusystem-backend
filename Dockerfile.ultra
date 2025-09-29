@@ -1,0 +1,47 @@
+# syntax=docker/dockerfile:1.6
+# Ultra-fast build: contexto mínimo
+
+# ---- Builder Stage ----
+FROM node:20 AS builder
+WORKDIR /app
+RUN corepack enable
+
+# Solo manifests (contexto mínimo)
+COPY package.json pnpm-lock.yaml ./
+
+# Cache mount para pnpm store
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm fetch
+
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm install --offline --frozen-lockfile
+
+# Solo archivos esenciales (NO todo el directorio)
+COPY src/ ./src/
+COPY prisma/ ./prisma/
+COPY tsconfig.json ./
+
+# Generate y build
+RUN pnpm prisma generate
+RUN pnpm build
+RUN pnpm prune --prod
+
+# ---- Production Stage ----
+FROM node:20-slim
+WORKDIR /app
+
+# OpenSSL para Prisma
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
+# Copy artifacts
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/package.json ./package.json
+
+# Entrypoint
+COPY entrypoint.sh .
+RUN sed -i 's/\r$//' entrypoint.sh && chmod +x entrypoint.sh
+
+EXPOSE 4000
+ENTRYPOINT ["./entrypoint.sh"]
