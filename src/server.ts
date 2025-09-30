@@ -4,6 +4,7 @@ import cors from 'cors'
 import clientsRouter from './routes/clients.js'
 import productsRouter from './routes/products.js'
 import quotesRouter from './routes/quotes.js'
+import analyticsRouter from './routes/analytics.js'
 import { clientBranchesByClient, clientBranchesRouter } from './routes/clientBranches.js'
 import swaggerRouter from './docs/swagger.js'
 import publicRouter from './routes/public.js'
@@ -12,6 +13,7 @@ import organizationsRouter from './routes/organizations.js'
 import { invitationsRouter, publicInvitationsRouter } from './routes/invitations.js'
 import membersRouter from './routes/members.js'
 import { getPrisma } from './prisma.js'
+
 
 const app = express()
 app.use(Sentry.Handlers.requestHandler())
@@ -80,6 +82,7 @@ app.use('/products', productsRouter)
 app.use('/quotes', quotesRouter)
 app.use('/invitations', invitationsRouter)
 app.use('/members', membersRouter)
+app.use('/analytics', analyticsRouter)
 
 app.use(Sentry.Handlers.errorHandler())
 // Error handler
