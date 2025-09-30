@@ -146,6 +146,7 @@ model Quote {
   publicEnabled Boolean     @default(false)
   items         QuoteItem[]
   additionalCharges QuoteAdditionalCharge[]
+  statusHistory QuoteStatusHistory[]
   subtotal      Decimal?    @db.Decimal(18, 2)
   taxTotal      Decimal?    @db.Decimal(18, 2)
   discountTotal Decimal?    @db.Decimal(18, 2)
@@ -190,5 +191,20 @@ model QuoteAdditionalCharge {
   tenantId BigInt
   tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@index([tenantId])
+}
+
+model QuoteStatusHistory {
+  id         String   @id @default(cuid())
+  quoteId    String
+  quote      Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  fromStatus String?  @db.VarChar(20)
+  toStatus   String   @db.VarChar(20)
+  reason     String?  // Motivo del cambio
+  changedBy  String?  // Usuario que hizo el cambio (email o nombre)
+  changedAt  DateTime @default(now())
+  tenantId   BigInt
+
+  @@index([quoteId])
   @@index([tenantId])
 }

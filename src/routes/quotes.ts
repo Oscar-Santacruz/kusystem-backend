@@ -325,8 +325,8 @@ router.post('/:id/public/enable', async (req, res, next) => {
   }
 })
 
-// Regenerar publicId (y habilitar)
-router.post('/:id/public/regenerate', async (req, res, next) => {
+// Regenerar enlace público
+router.post('/:id/regenerate-public-link', async (req, res, next) => {
   try {
     const { id } = req.params
     const newPublicId = randomUUID()
@@ -340,6 +340,60 @@ router.post('/:id/public/regenerate', async (req, res, next) => {
     }
     const refreshed = await prisma.quote.findFirstOrThrow({ where: { id, tenantId }, select: { id: true, publicId: true, publicEnabled: true } })
     res.json(refreshed)
+  } catch (err) {
+    next(err)
+  }
+})
+
+// PATCH /quotes/:id/status - Cambiar estado del presupuesto
+const updateStatusSchema = z.object({
+  status: z.enum(['DRAFT', 'OPEN', 'APPROVED', 'REJECTED', 'EXPIRED', 'INVOICED']),
+  reason: z.string().optional(),
+})
+
+router.patch('/:id/status', async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const tenantId = getTenantId(res)
+    const { status, reason } = updateStatusSchema.parse(req.body)
+
+    // Obtener usuario actual
+    const changedBy = (req.headers['x-user-email'] as string) || (req.headers['x-user-name'] as string) || 'Sistema'
+
+    // Obtener presupuesto actual
+    const currentQuote = await prisma.quote.findFirst({
+      where: { id, tenantId },
+      select: { status: true },
+    })
+
+    if (!currentQuote) {
+      return res.status(404).json({ error: 'Presupuesto no encontrado' })
+    }
+
+    // Actualizar estado y crear historial en una transacción
+    const [updatedQuote] = await prisma.$transaction([
+      prisma.quote.update({
+        where: { id },
+        data: { status },
+        include: {
+          items: true,
+          additionalCharges: true,
+          branch: { select: { name: true } },
+        },
+      }),
+      prisma.quoteStatusHistory.create({
+        data: {
+          quoteId: id,
+          fromStatus: currentQuote.status,
+          toStatus: status,
+          reason: reason || null,
+          changedBy,
+          tenantId,
+        },
+      }),
+    ])
+
+    res.json(updatedQuote)
   } catch (err) {
     next(err)
   }

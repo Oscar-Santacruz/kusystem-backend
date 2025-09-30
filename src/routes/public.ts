@@ -1,8 +1,9 @@
 import { Router } from 'express'
-import { Prisma } from '@prisma/client'
+import pkg from '@prisma/client'
 import { prisma } from '../lib/prisma.js'
 import { sanitizeQuote } from '../utils/sanitize.js'
 
+const { Prisma } = pkg
 const router = Router()
 
 // GET /public/quotes/:publicId
