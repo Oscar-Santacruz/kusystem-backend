@@ -9,12 +9,8 @@ RUN corepack enable
 # Solo manifests (contexto mínimo)
 COPY package.json pnpm-lock.yaml ./
 
-# Cache mount para pnpm store
-RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
-    pnpm fetch
-
-RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
-    pnpm install --offline --frozen-lockfile
+# Install sin cache mounts (más compatible con Windows)
+RUN pnpm install --frozen-lockfile
 
 # Solo archivos esenciales (NO todo el directorio)
 COPY src/ ./src/
@@ -24,7 +20,9 @@ COPY tsconfig.json ./
 # Generate y build
 RUN pnpm prisma generate
 RUN pnpm build
-RUN pnpm prune --prod
+
+# Install solo deps de producción en directorio limpio
+RUN pnpm install --prod --frozen-lockfile
 
 # ---- Production Stage ----
 FROM node:20-slim
