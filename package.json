@@ -1,18 +1,31 @@
 {
-  "name": "kusystem-backend",
-  "version": "0.1.0",
-  "private": true,
+  "name": "fastify-prisma-starter",
+  "version": "1.0.0",
+  "description": "Production-ready starter for Fastify, Prisma, Zod, and TypeScript.",
+  "main": "dist/server.js",
   "type": "module",
   "scripts": {
+    "lint": "eslint . --ext .ts --fix",
+    "test": "vitest run",
     "dev": "tsx watch src/server.ts",
-    "build": "tsc -p .",
+    "build": "tsc",
     "start": "node dist/server.js",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "prisma db seed",
-    "openapi:generate": "tsx src/docs/openapi.ts",
-    "test": "vitest run"
+    "openapi:generate": "tsx src/docs/openapi.ts"
   },
+  "keywords": [
+    "fastify",
+    "prisma",
+    "zod",
+    "typescript",
+    "starter"
+  ],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
     "@prisma/client": "^5.16.2",
     "@sentry/nestjs": "^10.10.0",

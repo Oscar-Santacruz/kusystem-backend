@@ -3,10 +3,16 @@ import { z } from 'zod'
 export const productSchema = z.object({
   sku: z.string().max(100).optional().nullable(),
   name: z.string().min(1),
+  description: z.string().optional().nullable(),
+  barcode: z.string().max(100).optional().nullable(),
   unit: z.string().max(50).optional().nullable(),
   price: z.number().nonnegative(),
+  cost: z.number().nonnegative().optional().nullable(),
   taxRate: z.number().min(0).max(1).optional().nullable(),
   priceIncludesTax: z.boolean().optional().default(false),
+  stock: z.number().nonnegative().optional().nullable(),
+  minStock: z.number().nonnegative().optional().nullable(),
+  imageUrl: z.string().optional().nullable(),
 })
 
 export const clientSchema = z.object({
