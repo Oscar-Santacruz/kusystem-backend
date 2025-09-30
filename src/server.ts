@@ -11,6 +11,7 @@ import { tenantMiddleware } from './utils/tenant.js'
 import organizationsRouter from './routes/organizations.js'
 import { invitationsRouter, publicInvitationsRouter } from './routes/invitations.js'
 import membersRouter from './routes/members.js'
+import { getPrisma } from './prisma.js'
 
 const app = express()
 app.use(Sentry.Handlers.requestHandler())
@@ -35,7 +36,32 @@ app.use(cors({
 }))
 app.use(express.json({ limit: '1mb' }))
 
-app.get('/health', (_req, res) => res.json({ ok: true }))
+app.get('/health', async (_req, res) => {
+  const prisma = getPrisma()
+
+  try {
+    const [row] = await prisma.$queryRaw<{ now: Date }[]>`SELECT NOW() AS now`
+    const dbTime = row?.now?.toISOString() ?? null
+
+    return res.json({
+      ok: true,
+      db: {
+        ok: true,
+        time: dbTime,
+      },
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+
+    return res.status(503).json({
+      ok: false,
+      db: {
+        ok: false,
+        error: message,
+      },
+    })
+  }
+})
 
 // Rutas públicas sin tenant
 app.use('/public', publicRouter)
