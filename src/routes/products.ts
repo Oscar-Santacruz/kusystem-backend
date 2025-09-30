@@ -46,7 +46,10 @@ router.get('/', async (req, res, next) => {
     const data = rows.map((p: Product) => ({
       ...p,
       price: Number(p.price),
+      cost: p.cost == null ? null : Number(p.cost),
       taxRate: p.taxRate == null ? null : Number(p.taxRate),
+      stock: p.stock == null ? null : Number(p.stock),
+      minStock: p.minStock == null ? null : Number(p.minStock),
       // priceIncludesTax ya es boolean en Prisma
     }))
 
@@ -61,7 +64,14 @@ router.get('/:id', async (req, res, next) => {
     const { id } = req.params
     const tenantId = getTenantId(res)
     const p = await prisma.product.findFirstOrThrow({ where: { id, tenantId } })
-    res.json({ ...p, price: Number(p.price), taxRate: p.taxRate == null ? null : Number(p.taxRate) })
+    res.json({ 
+      ...p, 
+      price: Number(p.price), 
+      cost: p.cost == null ? null : Number(p.cost),
+      taxRate: p.taxRate == null ? null : Number(p.taxRate),
+      stock: p.stock == null ? null : Number(p.stock),
+      minStock: p.minStock == null ? null : Number(p.minStock)
+    })
   } catch (err) {
     next(err)
   }
@@ -72,7 +82,14 @@ router.post('/', async (req, res, next) => {
     const input = productSchema.parse(req.body)
     const tenantId = getTenantId(res)
     const created = await prisma.product.create({ data: { ...input, tenantId } })
-    res.status(201).json({ ...created, price: Number(created.price), taxRate: created.taxRate == null ? null : Number(created.taxRate) })
+    res.status(201).json({ 
+      ...created, 
+      price: Number(created.price), 
+      cost: created.cost == null ? null : Number(created.cost),
+      taxRate: created.taxRate == null ? null : Number(created.taxRate),
+      stock: created.stock == null ? null : Number(created.stock),
+      minStock: created.minStock == null ? null : Number(created.minStock)
+    })
   } catch (err) {
     next(err)
   }
@@ -88,7 +105,14 @@ router.put('/:id', async (req, res, next) => {
       return res.status(404).json({ error: 'Producto no encontrado' })
     }
     const updated = await prisma.product.findFirstOrThrow({ where: { id, tenantId } })
-    res.json({ ...updated, price: Number(updated.price), taxRate: updated.taxRate == null ? null : Number(updated.taxRate) })
+    res.json({ 
+      ...updated, 
+      price: Number(updated.price), 
+      cost: updated.cost == null ? null : Number(updated.cost),
+      taxRate: updated.taxRate == null ? null : Number(updated.taxRate),
+      stock: updated.stock == null ? null : Number(updated.stock),
+      minStock: updated.minStock == null ? null : Number(updated.minStock)
+    })
   } catch (err) {
     next(err)
   }

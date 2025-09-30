@@ -108,16 +108,22 @@ model ClientBranch {
 }
 
 model Product {
-  id        String   @id @default(cuid())
-  sku       String?  @db.VarChar(100)
-  name      String
-  unit      String?  @db.VarChar(50)
-  price     Decimal  @db.Decimal(18, 2)
-  taxRate   Decimal? @db.Decimal(5, 4)
+  id          String   @id @default(cuid())
+  sku         String?  @db.VarChar(100)
+  name        String
+  description String?
+  barcode     String?  @db.VarChar(100)
+  unit        String?  @db.VarChar(50)
+  price       Decimal  @db.Decimal(18, 2)
+  cost        Decimal? @db.Decimal(18, 2)
+  taxRate     Decimal? @db.Decimal(5, 4)
   priceIncludesTax Boolean @default(false)
-  items     QuoteItem[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  stock       Decimal? @db.Decimal(18, 2)
+  minStock    Decimal? @db.Decimal(18, 2)
+  imageUrl    String?
+  items       QuoteItem[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   tenantId  BigInt
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
