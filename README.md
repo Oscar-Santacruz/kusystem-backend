@@ -36,6 +36,11 @@ npm run dev
 ## Endpoints
 - Salud: `GET /health`
 
+- Calendario HR (requiere cabecera `X-Tenant-Id`):
+  - `GET /hr/calendar/week?start=YYYY-MM-DD`
+  - `PUT /hr/calendar/week/:employeeId/:date`
+  - `GET /hr/calendar/employees`
+
 - Clientes:
   - `GET /clients?search=&page=1&pageSize=20`
   - `GET /clients/:id`
@@ -68,3 +73,4 @@ Notas:
 - Los campos monetarios y cantidades usan `Decimal` en BD; las respuestas convierten a `number`.
 - Validaciones con `zod` en los endpoints.
 - CORS permite por defecto `http://localhost:5173` (Vite). Cambiar `ALLOW_ORIGIN` si es necesario.
+- Para habilitar el Calendario HR en una base existente ejecutar: `npx prisma migrate deploy` y luego `npm run prisma:seed`.

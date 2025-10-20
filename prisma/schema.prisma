@@ -23,6 +23,10 @@ model Tenant {
   quotes    Quote[]
   items     QuoteItem[]
   charges   QuoteAdditionalCharge[]
+  employees Employee[]
+  employeeSchedules EmployeeSchedule[]
+  employeeAdvances EmployeeAdvance[]
+  employeeSalaryHistory EmployeeSalaryHistory[]
 
   memberships Membership[]
   invitations Invitation[]
@@ -213,4 +217,95 @@ model QuoteStatusHistory {
 
   @@index([quoteId])
   @@index([tenantId])
+}
+
+enum DayType {
+  LABORAL
+  AUSENTE
+  LIBRE
+  NO_LABORAL
+  FERIADO
+}
+
+model Employee {
+  id                String   @id @default(cuid())
+  tenantId          BigInt
+  firstName         String
+  lastName          String
+  email             String?  @db.VarChar(200)
+  phone             String?  @db.VarChar(50)
+  avatarUrl         String?
+  monthlySalary     Decimal? @db.Decimal(18, 2)
+  defaultShiftStart String?  @db.VarChar(5)
+  defaultShiftEnd   String?  @db.VarChar(5)
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  tenant      Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  schedules   EmployeeSchedule[]
+  advances    EmployeeAdvance[]
+  salaries    EmployeeSalaryHistory[]
+
+  @@index([tenantId])
+}
+
+model EmployeeSchedule {
+  id             String   @id @default(cuid())
+  tenantId       BigInt
+  employeeId     String
+  date           DateTime @db.Date
+  clockIn        String?  @db.VarChar(5)
+  clockOut       String?  @db.VarChar(5)
+  overtimeMinutes Int     @default(0)
+  dayType        DayType  @default(LABORAL)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  advances EmployeeAdvance[]
+
+  @@unique([tenantId, employeeId, date])
+  @@index([tenantId, date])
+}
+
+model EmployeeAdvance {
+  id         String   @id @default(cuid())
+  tenantId   BigInt
+  employeeId String
+  scheduleId String?
+  amount     Decimal  @db.Decimal(18, 2)
+  currency   String   @default("PYG") @db.VarChar(10)
+  reason     String?
+  issuedAt   DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant   Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  schedule EmployeeSchedule?  @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@index([scheduleId])
+}
+
+model EmployeeSalaryHistory {
+  id            String   @id @default(cuid())
+  tenantId      BigInt
+  employeeId    String
+  monthlySalary Decimal  @db.Decimal(18, 2)
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([employeeId])
 }

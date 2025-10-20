@@ -12,6 +12,7 @@ import { tenantMiddleware } from './utils/tenant.js'
 import organizationsRouter from './routes/organizations.js'
 import { invitationsRouter, publicInvitationsRouter } from './routes/invitations.js'
 import membersRouter from './routes/members.js'
+import hrCalendarRouter from './routes/hrCalendar.js'
 import { getPrisma } from './prisma.js'
 
 
@@ -83,6 +84,7 @@ app.use('/quotes', quotesRouter)
 app.use('/invitations', invitationsRouter)
 app.use('/members', membersRouter)
 app.use('/analytics', analyticsRouter)
+app.use('/hr/calendar', hrCalendarRouter)
 
 app.use(Sentry.Handlers.errorHandler())
 // Error handler

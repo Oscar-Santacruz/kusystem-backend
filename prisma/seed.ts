@@ -64,6 +64,64 @@ async function main() {
     }
   }
 
+  console.log('Products seeded.')
+
+  // Seed employees
+  console.log('Seeding employees...')
+  
+  const employees = [
+    {
+      firstName: 'Oscar Wilfrido',
+      lastName: 'Santacruz Gimenez',
+      email: 'oscar@example.com',
+      monthlySalary: 3_500_000,
+      defaultShiftStart: '08:00',
+      defaultShiftEnd: '17:00',
+    },
+    {
+      firstName: 'David',
+      lastName: 'Lopez',
+      email: 'david@example.com',
+      monthlySalary: 3_200_000,
+      defaultShiftStart: '08:00',
+      defaultShiftEnd: '17:00',
+    },
+    {
+      firstName: 'Neyul',
+      lastName: 'Martinez',
+      email: 'neyul@example.com',
+      monthlySalary: 2_800_000,
+      defaultShiftStart: '08:00',
+      defaultShiftEnd: '17:00',
+    },
+    {
+      firstName: 'Maria',
+      lastName: 'Rodriguez',
+      email: 'maria@example.com',
+      monthlySalary: 3_100_000,
+      defaultShiftStart: '08:00',
+      defaultShiftEnd: '17:00',
+    },
+  ]
+
+  for (const emp of employees) {
+    const existing = await prisma.employee.findFirst({
+      where: { email: emp.email, tenantId },
+    })
+
+    if (!existing) {
+      await prisma.employee.create({
+        data: {
+          ...emp,
+          tenantId,
+        },
+      })
+      console.log(`created employee -> ${emp.firstName} ${emp.lastName}`)
+    } else {
+      console.log(`employee exists -> ${emp.firstName} ${emp.lastName}`)
+    }
+  }
+
   console.log('Seed completed.')
 }
 
