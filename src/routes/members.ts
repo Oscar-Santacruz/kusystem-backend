@@ -75,10 +75,12 @@ router.get('/me/permissions', async (req, res, next) => {
       include: { permission: true },
     })
 
+    type PermissionShape = { resource: string; action: string }
+
     const permissions = rolePermissions
-      .map((rp: { permission?: { resource: string; action: string } | null }) => rp.permission)
-      .filter((perm): perm is { resource: string; action: string } => !!perm)
-      .map((perm) => `${perm.resource}:${perm.action}`)
+      .map((rp: { permission?: PermissionShape | null }) => rp.permission)
+      .filter((perm: PermissionShape | null | undefined): perm is PermissionShape => Boolean(perm))
+      .map((perm: PermissionShape) => `${perm.resource}:${perm.action}`)
 
     return res.json({ role: membership.role, permissions })
   } catch (err) { next(err) }
