@@ -3,8 +3,11 @@ import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { getTenantId } from '../utils/tenant.js'
 import { DayType } from '@prisma/client'
+import { requirePermission } from '../middleware/permissions.js'
 
 const router = Router()
+
+router.use(requirePermission('hr-calendar', 'view'))
 
 // Schema para validar el upsert de schedule
 const scheduleUpsertSchema = z.object({

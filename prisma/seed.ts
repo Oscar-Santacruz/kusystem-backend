@@ -20,6 +20,30 @@ const products: Array<{ sku: string; name: string; unit?: string; price: number;
   { sku: 'LP004', name: 'CONFECCION DE CARTEL DE CHAPA MEDIDAS 1,50 x 1,00 PARA LISTA DE PRECIOS CON NUMEROS MANTADOS Y REFLECTIVOS', unit: 'UN', price: 550_000 },
 ]
 
+const permissionSeeds: Array<{ resource: string; action: string; description?: string }> = [
+  { resource: 'products', action: 'view', description: 'Ver productos' },
+  { resource: 'quotes', action: 'view', description: 'Ver presupuestos' },
+  { resource: 'clients', action: 'view', description: 'Ver clientes' },
+  { resource: 'hr-calendar', action: 'view', description: 'Ver calendario de RRHH' },
+  { resource: 'admin', action: 'manage-permissions', description: 'Gestionar permisos del equipo' },
+]
+
+const defaultRolePermissions: Record<'admin' | 'member', Array<{ resource: string; action: string }>> = {
+  admin: [
+    { resource: 'products', action: 'view' },
+    { resource: 'quotes', action: 'view' },
+    { resource: 'clients', action: 'view' },
+    { resource: 'hr-calendar', action: 'view' },
+    { resource: 'admin', action: 'manage-permissions' },
+  ],
+  member: [
+    { resource: 'products', action: 'view' },
+    { resource: 'quotes', action: 'view' },
+    { resource: 'clients', action: 'view' },
+    { resource: 'hr-calendar', action: 'view' },
+  ],
+}
+
 async function main() {
   console.log('Seeding products...')
 
@@ -30,6 +54,8 @@ async function main() {
     update: {},
   })
   const tenantId = tenant.id
+
+  await seedPermissions(tenantId)
 
   for (const p of products) {
     // Como sku no es único en el schema, hacemos un upsert manual buscando por sku primero.
@@ -123,6 +149,48 @@ async function main() {
   }
 
   console.log('Seed completed.')
+}
+
+async function seedPermissions(tenantId: bigint) {
+  console.log('Seeding permissions...')
+  const permissionMap = new Map<string, string>()
+
+  for (const seed of permissionSeeds) {
+    const permission = await prisma.permission.upsert({
+      where: { resource_action: { resource: seed.resource, action: seed.action } },
+      update: { description: seed.description ?? undefined },
+      create: {
+        resource: seed.resource,
+        action: seed.action,
+        description: seed.description ?? undefined,
+      },
+    })
+    permissionMap.set(`${seed.resource}:${seed.action}`, permission.id)
+  }
+
+  for (const [role, permissions] of Object.entries(defaultRolePermissions) as Array<['admin' | 'member', Array<{ resource: string; action: string }>]> ) {
+    for (const entry of permissions) {
+      const key = `${entry.resource}:${entry.action}`
+      const permissionId = permissionMap.get(key)
+      if (!permissionId) continue
+      await prisma.rolePermission.upsert({
+        where: {
+          tenantId_role_permissionId: {
+            tenantId,
+            role,
+            permissionId,
+          },
+        },
+        update: {},
+        create: {
+          tenantId,
+          role,
+          permissionId,
+        },
+      })
+    }
+  }
+  console.log('Permissions seeded.')
 }
 
 main()

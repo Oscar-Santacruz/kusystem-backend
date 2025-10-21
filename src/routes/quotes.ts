@@ -5,8 +5,11 @@ import { Quote, QuoteItem, QuoteAdditionalCharge, PrismaClient } from '@prisma/c
 import { prisma } from '../lib/prisma.js'
 import { quoteSchema, quoteItemSchema, additionalChargeSchema } from './schemas.js'
 import { getTenantId } from '../utils/tenant.js'
+import { requirePermission } from '../middleware/permissions.js'
 
 const router = Router()
+
+router.use(requirePermission('quotes', 'view'))
 
 function computeTotals(
   items: z.infer<typeof quoteItemSchema>[],

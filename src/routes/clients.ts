@@ -2,8 +2,11 @@ import { Router } from 'express'
 import { prisma } from '../lib/prisma.js'
 import { clientSchema } from './schemas.js'
 import { getTenantId } from '../utils/tenant.js'
+import { requirePermission } from '../middleware/permissions.js'
 
 const router = Router()
+
+router.use(requirePermission('clients', 'view'))
 
 router.get('/', async (req, res, next) => {
   try {

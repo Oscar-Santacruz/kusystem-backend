@@ -3,8 +3,11 @@ import { Product } from '@prisma/client'
 import { prisma } from '../lib/prisma.js'
 import { productSchema } from './schemas.js'
 import { getTenantId } from '../utils/tenant.js'
+import { requirePermission } from '../middleware/permissions.js'
 
 const router = Router()
+
+router.use(requirePermission('products', 'view'))
 
 router.get('/', async (req, res, next) => {
   try {

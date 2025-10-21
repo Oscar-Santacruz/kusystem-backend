@@ -27,9 +27,11 @@ model Tenant {
   employeeSchedules EmployeeSchedule[]
   employeeAdvances EmployeeAdvance[]
   employeeSalaryHistory EmployeeSalaryHistory[]
+  quoteStatusHistory QuoteStatusHistory[]
 
   memberships Membership[]
   invitations Invitation[]
+  rolePermissions RolePermission[]
 }
 
 model User {
@@ -214,6 +216,7 @@ model QuoteStatusHistory {
   changedBy  String?  // Usuario que hizo el cambio (email o nombre)
   changedAt  DateTime @default(now())
   tenantId   BigInt
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([quoteId])
   @@index([tenantId])
@@ -308,4 +311,31 @@ model EmployeeSalaryHistory {
 
   @@index([tenantId])
   @@index([employeeId])
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  resource    String
+  action      String
+  description String?
+  createdAt   DateTime @default(now())
+
+  rolePermissions RolePermission[]
+
+  @@unique([resource, action])
+  @@index([resource])
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  tenantId     BigInt
+  role         String     @db.VarChar(20)
+  permissionId String
+  createdAt    DateTime   @default(now())
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, role, permissionId])
+  @@index([tenantId, role])
 }

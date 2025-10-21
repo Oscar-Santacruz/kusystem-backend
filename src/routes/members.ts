@@ -6,6 +6,7 @@ import { getTenantId } from '../utils/tenant.js'
 import { getCurrentUser } from '../utils/auth.js'
 
 const prisma = getPrisma()
+const prismaAny = prisma as any
 const router = Router()
 
 async function assertAdminOrOwner(userAuthId: string, tenantId: bigint) {
@@ -39,6 +40,47 @@ router.get('/', async (req, res, next) => {
       user: { id: m.userId, email: m.user.email, name: m.user.name },
       tenantId: m.tenantId.toString(),
     })) })
+  } catch (err) { next(err) }
+})
+
+router.get('/me/permissions', async (req, res, next) => {
+  try {
+    const tenantId = getTenantId(res)
+    const cu = getCurrentUser(req)
+    if (!cu?.authProviderId && !cu?.id) return res.status(401).json({ error: 'Unauthorized' })
+
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { id: cu.id },
+          { authProviderId: cu.authProviderId ?? cu.id },
+        ],
+      },
+    })
+    if (!user) return res.status(403).json({ error: 'User not registered' })
+
+    const membership = await prisma.membership.findUnique({
+      where: { userId_tenantId: { userId: user.id, tenantId } },
+    })
+    if (!membership) return res.status(403).json({ error: 'Not a member' })
+
+    if (membership.role === 'owner') {
+      const allPermissions = await prismaAny.permission.findMany()
+      const permissions = allPermissions.map((p: { resource: string; action: string }) => `${p.resource}:${p.action}`)
+      return res.json({ role: membership.role, permissions })
+    }
+
+    const rolePermissions = await prismaAny.rolePermission.findMany({
+      where: { tenantId, role: membership.role },
+      include: { permission: true },
+    })
+
+    const permissions = rolePermissions
+      .map((rp: { permission?: { resource: string; action: string } | null }) => rp.permission)
+      .filter((perm): perm is { resource: string; action: string } => !!perm)
+      .map((perm) => `${perm.resource}:${perm.action}`)
+
+    return res.json({ role: membership.role, permissions })
   } catch (err) { next(err) }
 })
 
