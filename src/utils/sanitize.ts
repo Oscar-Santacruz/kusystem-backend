@@ -27,6 +27,7 @@ export interface PublicQuote {
   number: string | null
   status: string | null
   customerName: string
+  customerRuc: string | null
   branchName: string | null
   issueDate: Date | null
   dueDate: Date | null
@@ -47,6 +48,7 @@ export function sanitizeQuote(q: Quote & { items: QuoteItem[]; additionalCharges
     number: q.number ?? null,
     status: q.status ?? null,
     customerName: q.customerName,
+    customerRuc: (q as any).customerRuc ?? null,
     branchName: q.branchName ?? null,
     issueDate: q.issueDate ?? null,
     dueDate: q.dueDate ?? null,

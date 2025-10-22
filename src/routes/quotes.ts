@@ -46,17 +46,19 @@ router.get('/', async (req, res, next) => {
           items: true,
           additionalCharges: true,
           branch: { select: { name: true } },
+          customer: { select: { taxId: true } },
         },
         orderBy: { createdAt: 'desc' },
       }),
       prisma.quote.count({ where }),
     ])
 
-            const data = rows.map((q) => {
-      const { items, additionalCharges, branch, ...rest } = q;
+    const data = rows.map((q) => {
+      const { items, additionalCharges, branch, customer, ...rest } = q;
       return {
         ...rest,
         branchName: rest.branchName ?? branch?.name ?? null,
+        customerRuc: customer?.taxId ?? null,
         subtotal: q.subtotal == null ? null : Number(q.subtotal),
         taxTotal: q.taxTotal == null ? null : Number(q.taxTotal),
         discountTotal: q.discountTotal == null ? null : Number(q.discountTotal),
@@ -87,12 +89,18 @@ router.get('/:id', async (req, res, next) => {
     const tenantId = getTenantId(res)
     const q = await prisma.quote.findFirstOrThrow({
       where: { id, tenantId },
-      include: { items: true, additionalCharges: true, branch: { select: { name: true } } },
+      include: {
+        items: true,
+        additionalCharges: true,
+        branch: { select: { name: true } },
+        customer: { select: { taxId: true } },
+      },
     })
-            const { items, additionalCharges, branch, ...rest } = q;
+    const { items, additionalCharges, branch, customer, ...rest } = q;
     res.json({
       ...rest,
       branchName: rest.branchName ?? branch?.name ?? null,
+      customerRuc: customer?.taxId ?? null,
       subtotal: q.subtotal == null ? null : Number(q.subtotal),
       taxTotal: q.taxTotal == null ? null : Number(q.taxTotal),
       discountTotal: q.discountTotal == null ? null : Number(q.discountTotal),
@@ -164,14 +172,20 @@ router.post('/', async (req, res, next) => {
             }
           : undefined,
       },
-      include: { items: true, additionalCharges: true, branch: { select: { name: true } } },
+      include: {
+        items: true,
+        additionalCharges: true,
+        branch: { select: { name: true } },
+        customer: { select: { taxId: true } },
+      },
     })
 
-        {
-      const { items, additionalCharges, branch, ...rest } = created;
+    {
+      const { items, additionalCharges, branch, customer, ...rest } = created;
       res.status(201).json({
         ...rest,
         branchName: rest.branchName ?? branch?.name ?? null,
+        customerRuc: customer?.taxId ?? null,
         subtotal: created.subtotal == null ? null : Number(created.subtotal),
         taxTotal: created.taxTotal == null ? null : Number(created.taxTotal),
         discountTotal: created.discountTotal == null ? null : Number(created.discountTotal),
@@ -262,16 +276,22 @@ router.put('/:id', async (req, res, next) => {
 
       const finalQuote = await tx.quote.findFirstOrThrow({
         where: { id, tenantId },
-        include: { items: true, additionalCharges: true, branch: { select: { name: true } } },
+        include: {
+          items: true,
+          additionalCharges: true,
+          branch: { select: { name: true } },
+          customer: { select: { taxId: true } },
+        },
       })
       return finalQuote
     })
 
-        {
-      const { items, additionalCharges, branch, ...rest } = result;
+    {
+      const { items, additionalCharges, branch, customer, ...rest } = result;
       res.json({
         ...rest,
         branchName: rest.branchName ?? branch?.name ?? null,
+        customerRuc: customer?.taxId ?? null,
         subtotal: result.subtotal == null ? null : Number(result.subtotal),
         taxTotal: result.taxTotal == null ? null : Number(result.taxTotal),
         discountTotal: result.discountTotal == null ? null : Number(result.discountTotal),
@@ -382,6 +402,7 @@ router.patch('/:id/status', async (req, res, next) => {
           items: true,
           additionalCharges: true,
           branch: { select: { name: true } },
+          customer: { select: { taxId: true } },
         },
       }),
       prisma.quoteStatusHistory.create({
@@ -396,7 +417,11 @@ router.patch('/:id/status', async (req, res, next) => {
       }),
     ])
 
-    res.json(updatedQuote)
+    const { customer, ...rest } = updatedQuote as any
+    res.json({
+      ...rest,
+      customerRuc: customer?.taxId ?? null,
+    })
   } catch (err) {
     next(err)
   }

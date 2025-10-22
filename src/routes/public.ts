@@ -12,14 +12,19 @@ router.get('/quotes/:publicId', async (req, res, next) => {
     const { publicId } = req.params
     const q = await prisma.quote.findFirstOrThrow({
       where: { publicId, publicEnabled: true },
-      include: { items: true, additionalCharges: true, branch: { select: { name: true } } },
+      include: {
+        items: true,
+        additionalCharges: true,
+        branch: { select: { name: true } },
+        customer: { select: { taxId: true } },
+      },
     })
 
-    const { branch, ...rest } = q as any
-    const sanitized = sanitizeQuote({ ...rest, branch } as any)
+    const { branch, customer, ...rest } = q as any
+    const sanitized = sanitizeQuote({ ...rest, branch, customerRuc: customer?.taxId ?? null } as any)
     // Aseguramos branchName consolidado (persistido o por join)
     const branchName = (q as any).branchName ?? branch?.name ?? null
-    res.json({ ...sanitized, branchName })
+    res.json({ ...sanitized, branchName, customerRuc: customer?.taxId ?? null })
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
       return res.status(404).json({ error: 'Public quote not found' })
