@@ -19,6 +19,157 @@ const scheduleUpsertSchema = z.object({
   notes: z.string().optional().nullable(),
 })
 
+// Schema para validar filtros de reporte
+const reportFiltersSchema = z.object({
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  employeeId: z.string().optional(),
+  department: z.string().optional(),
+  dayType: z.enum(['LABORAL', 'AUSENTE', 'LIBRE', 'NO_LABORAL', 'FERIADO']).optional(),
+})
+
+// GET /hr/calendar/reports
+// Retorna datos filtrados para reportes
+router.get('/reports', async (req, res, next) => {
+  try {
+    const tenantId = getTenantId(res)
+    const filters = reportFiltersSchema.parse(req.query)
+    
+    const startDate = new Date(filters.startDate)
+    const endDate = new Date(filters.endDate)
+    endDate.setHours(23, 59, 59, 999) // Incluir todo el día final
+
+    // Construir filtros where para empleados
+    const employeeWhere: any = { tenantId }
+    if (filters.employeeId) {
+      employeeWhere.id = filters.employeeId
+    }
+    if (filters.department && filters.department !== 'all') {
+      employeeWhere.department = filters.department
+    }
+
+    // Obtener empleados filtrados
+    const employees = await prisma.employee.findMany({
+      where: employeeWhere,
+      orderBy: { firstName: 'asc' },
+    })
+
+    // Construir filtros where para schedules
+    const scheduleWhere: any = {
+      tenantId,
+      date: {
+        gte: startDate,
+        lte: endDate,
+      },
+    }
+    if (filters.dayType) {
+      scheduleWhere.dayType = filters.dayType as DayType
+    }
+    if (filters.employeeId) {
+      scheduleWhere.employeeId = filters.employeeId
+    }
+
+    // Obtener horarios filtrados
+    const schedules = await prisma.employeeSchedule.findMany({
+      where: scheduleWhere,
+      include: {
+        advances: true,
+        employee: true,
+      },
+      orderBy: [
+        { employee: { firstName: 'asc' } },
+        { date: 'asc' }
+      ],
+    })
+
+    // Filtrar schedules por departamento si es necesario
+    const filteredSchedules = filters.department
+      ? schedules.filter(s => s.employee.department === filters.department)
+      : schedules
+
+    // Agrupar schedules por empleado
+    const employeesWithSchedules = employees.map((emp) => {
+      const empSchedules = filteredSchedules.filter((s) => s.employeeId === emp.id)
+      
+      // Calcular métricas del período
+      const totalOvertimeMinutes = empSchedules.reduce((sum, s) => sum + s.overtimeMinutes, 0)
+      const totalAdvances = empSchedules.reduce((sum, s) => sum + s.advances.length, 0)
+      const totalAdvancesAmount = empSchedules.reduce(
+        (sum, s) => sum + s.advances.reduce((a: number, adv: any) => a + Number(adv.amount), 0),
+        0
+      )
+      const attendanceCount = empSchedules.filter(s => s.clockIn && s.clockOut).length
+
+      return {
+        id: emp.id,
+        firstName: emp.firstName,
+        lastName: emp.lastName,
+        name: `${emp.firstName} ${emp.lastName}`,
+        email: emp.email,
+        phone: emp.phone,
+        avatarUrl: emp.avatarUrl,
+        department: emp.department,
+        monthlySalary: emp.monthlySalary ? Number(emp.monthlySalary) : null,
+        defaultShiftStart: emp.defaultShiftStart,
+        defaultShiftEnd: emp.defaultShiftEnd,
+        // Métricas del período
+        totalOvertimeHours: Math.round(totalOvertimeMinutes / 60 * 10) / 10,
+        totalAdvances,
+        totalAdvancesAmount,
+        attendanceCount,
+        totalDays: empSchedules.length,
+        attendanceRate: empSchedules.length > 0 ? Math.round((attendanceCount / empSchedules.length) * 100 * 10) / 10 : 0,
+        schedules: empSchedules.map((s) => ({
+          id: s.id,
+          date: s.date.toISOString().split('T')[0],
+          clockIn: s.clockIn,
+          clockOut: s.clockOut,
+          overtimeMinutes: s.overtimeMinutes,
+          dayType: s.dayType,
+          notes: s.notes,
+          advances: s.advances.map((a: any) => ({
+            id: a.id,
+            amount: Number(a.amount),
+            currency: a.currency,
+            reason: a.reason,
+            issuedAt: a.issuedAt.toISOString(),
+          })),
+        })),
+      }
+    })
+
+    // Calcular estadísticas generales
+    const totalStats: any = {
+      totalEmployees: employeesWithSchedules.length,
+      totalDays: employeesWithSchedules.reduce((sum, emp) => sum + emp.totalDays, 0),
+      totalAttendance: employeesWithSchedules.reduce((sum, emp) => sum + emp.attendanceCount, 0),
+      totalOvertimeHours: employeesWithSchedules.reduce((sum, emp) => sum + emp.totalOvertimeHours, 0),
+      totalAdvancesAmount: employeesWithSchedules.reduce((sum, emp) => sum + emp.totalAdvancesAmount, 0),
+    }
+
+    totalStats.attendanceRate = totalStats.totalDays > 0 
+      ? Math.round((totalStats.totalAttendance / totalStats.totalDays) * 100 * 10) / 10 
+      : 0
+    totalStats.avgOvertimePerEmployee = totalStats.totalEmployees > 0 
+      ? Math.round((totalStats.totalOvertimeHours / totalStats.totalEmployees) * 10) / 10 
+      : 0
+
+    res.json({
+      startDate: filters.startDate,
+      endDate: filters.endDate,
+      filters: {
+        employeeId: filters.employeeId,
+        department: filters.department,
+        dayType: filters.dayType,
+      },
+      stats: totalStats,
+      employees: employeesWithSchedules,
+    })
+  } catch (err) {
+    next(err)
+  }
+})
+
 // GET /hr/calendar/week?start=YYYY-MM-DD
 // Retorna empleados + horarios + adelantos de la semana
 router.get('/week', async (req, res, next) => {
@@ -156,8 +307,8 @@ router.put('/week/:employeeId/:date', async (req, res, next) => {
       },
     })
 
-    // Si hay advance, crear/actualizar
-    if (input.advanceAmount && input.advanceAmount > 0) {
+    // Manejar advance: crear, actualizar o eliminar
+    if (input.advanceAmount !== null && input.advanceAmount !== undefined) {
       // Buscar si ya existe un advance para este schedule
       const existingAdvance = await prisma.employeeAdvance.findFirst({
         where: {
@@ -167,24 +318,34 @@ router.put('/week/:employeeId/:date', async (req, res, next) => {
         },
       })
 
-      if (existingAdvance) {
-        await prisma.employeeAdvance.update({
-          where: { id: existingAdvance.id },
-          data: {
-            amount: input.advanceAmount,
-          },
-        })
+      if (input.advanceAmount > 0) {
+        // Crear o actualizar advance con monto > 0
+        if (existingAdvance) {
+          await prisma.employeeAdvance.update({
+            where: { id: existingAdvance.id },
+            data: {
+              amount: input.advanceAmount,
+            },
+          })
+        } else {
+          await prisma.employeeAdvance.create({
+            data: {
+              tenantId,
+              employeeId,
+              scheduleId: schedule.id,
+              amount: input.advanceAmount,
+              currency: 'PYG',
+              issuedAt: new Date(),
+            },
+          })
+        }
       } else {
-        await prisma.employeeAdvance.create({
-          data: {
-            tenantId,
-            employeeId,
-            scheduleId: schedule.id,
-            amount: input.advanceAmount,
-            currency: 'PYG',
-            issuedAt: new Date(),
-          },
-        })
+        // Si advanceAmount es 0, eliminar el advance existente
+        if (existingAdvance) {
+          await prisma.employeeAdvance.delete({
+            where: { id: existingAdvance.id },
+          })
+        }
       }
     }
 

@@ -238,6 +238,7 @@ model Employee {
   email             String?  @db.VarChar(200)
   phone             String?  @db.VarChar(50)
   avatarUrl         String?
+  department        String?  @db.VarChar(50)
   monthlySalary     Decimal? @db.Decimal(18, 2)
   defaultShiftStart String?  @db.VarChar(5)
   defaultShiftEnd   String?  @db.VarChar(5)
@@ -251,6 +252,7 @@ model Employee {
   salaries    EmployeeSalaryHistory[]
 
   @@index([tenantId])
+  @@index([tenantId, department])
 }
 
 model EmployeeSchedule {
