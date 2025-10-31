@@ -9,6 +9,12 @@ const router = Router()
 
 router.use(requirePermission('hr-calendar', 'view'))
 
+const weekInitializerSchema = z.object({
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  clockIn: z.string().regex(/^\d{2}:\d{2}$/),
+  clockOut: z.string().regex(/^\d{2}:\d{2}$/),
+})
+
 // Schema para validar el upsert de schedule
 const scheduleUpsertSchema = z.object({
   clockIn: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
@@ -257,6 +263,84 @@ router.get('/week', async (req, res, next) => {
     })
   } catch (err) {
     next(err)
+  }
+})
+
+router.post('/week/initialize', requirePermission('hr-calendar', 'edit'), async (req, res, next) => {
+  try {
+    const tenantId = getTenantId(res)
+    const { startDate, clockIn, clockOut } = weekInitializerSchema.parse(req.body)
+
+    const [year, month, day] = startDate.split('-').map(Number)
+    const start = new Date(year, month - 1, day)
+
+    if (clockOut <= clockIn) {
+      return res.status(400).json({ error: 'La hora de salida debe ser posterior a la hora de entrada' })
+    }
+
+    const employees = await prisma.employee.findMany({
+      where: { tenantId },
+      select: { id: true },
+    })
+
+    if (employees.length === 0) {
+      return res.json({ ok: true, updatedSchedules: 0 })
+    }
+
+    const dates: Date[] = []
+    for (let index = 0; index < 7; index++) {
+      const date = new Date(start)
+      date.setDate(start.getDate() + index)
+      if (date.getDay() === 0) {
+        continue
+      }
+      dates.push(date)
+    }
+
+    let updatedCount = 0
+
+    for (const employee of employees) {
+      for (const date of dates) {
+        const schedule = await prisma.employeeSchedule.upsert({
+          where: {
+            tenantId_employeeId_date: {
+              tenantId,
+              employeeId: employee.id,
+              date,
+            },
+          },
+          create: {
+            tenantId,
+            employeeId: employee.id,
+            date,
+            clockIn,
+            clockOut,
+            dayType: DayType.LABORAL,
+            overtimeMinutes: 0,
+          },
+          update: {
+            clockIn,
+            clockOut,
+            dayType: DayType.LABORAL,
+            overtimeMinutes: 0,
+          },
+        })
+
+        await prisma.employeeAdvance.deleteMany({
+          where: {
+            tenantId,
+            employeeId: employee.id,
+            scheduleId: schedule.id,
+          },
+        })
+
+        updatedCount++
+      }
+    }
+
+    res.json({ ok: true, updatedSchedules: updatedCount })
+  } catch (error) {
+    next(error)
   }
 })
 

@@ -25,6 +25,7 @@ const permissionSeeds: Array<{ resource: string; action: string; description?: s
   { resource: 'quotes', action: 'view', description: 'Ver presupuestos' },
   { resource: 'clients', action: 'view', description: 'Ver clientes' },
   { resource: 'hr-calendar', action: 'view', description: 'Ver calendario de RRHH' },
+  { resource: 'hr-calendar', action: 'edit', description: 'Editar calendario de RRHH' },
   { resource: 'admin', action: 'manage-permissions', description: 'Gestionar permisos del equipo' },
 ]
 
@@ -34,6 +35,7 @@ const defaultRolePermissions: Record<'admin' | 'member', Array<{ resource: strin
     { resource: 'quotes', action: 'view' },
     { resource: 'clients', action: 'view' },
     { resource: 'hr-calendar', action: 'view' },
+    { resource: 'hr-calendar', action: 'edit' },
     { resource: 'admin', action: 'manage-permissions' },
   ],
   member: [

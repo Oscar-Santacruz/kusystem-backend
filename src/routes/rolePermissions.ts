@@ -8,6 +8,15 @@ const prisma = getPrisma()
 const prismaAny = prisma as any
 const router = Router()
 
+const REQUIRED_PERMISSIONS: Array<{ resource: string; action: string; description?: string | null }> = [
+  { resource: 'products', action: 'view', description: 'Ver productos' },
+  { resource: 'quotes', action: 'view', description: 'Ver presupuestos' },
+  { resource: 'clients', action: 'view', description: 'Ver clientes' },
+  { resource: 'hr-calendar', action: 'view', description: 'Ver calendario de RRHH' },
+  { resource: 'hr-calendar', action: 'edit', description: 'Editar calendario de RRHH' },
+  { resource: 'admin', action: 'manage-permissions', description: 'Gestionar permisos del equipo' },
+]
+
 type PermissionRow = { id: string; resource: string; action: string; description: string | null }
 type RolePermissionRow = { id: string; role: string; permission?: { resource: string; action: string } | null }
 type MembershipRow = { id: string; role: string; userId: string; user: { email: string | null; name: string | null }; tenantId: bigint }
@@ -29,6 +38,27 @@ async function assertOwnerOrAdmin(userAuthId: string, tenantId: bigint) {
   return false
 }
 
+async function ensureRequiredPermissions() {
+  for (const entry of REQUIRED_PERMISSIONS) {
+    await prismaAny.permission.upsert({
+      where: {
+        resource_action: {
+          resource: entry.resource,
+          action: entry.action,
+        },
+      },
+      update: {
+        description: entry.description ?? undefined,
+      },
+      create: {
+        resource: entry.resource,
+        action: entry.action,
+        description: entry.description ?? undefined,
+      },
+    })
+  }
+}
+
 router.get('/roles', async (req, res, next) => {
   try {
     const tenantId = getTenantId(res)
@@ -38,6 +68,8 @@ router.get('/roles', async (req, res, next) => {
     const authId = cu.authProviderId ?? cu.id
     const canManage = await assertOwnerOrAdmin(authId, tenantId)
     if (!canManage) return res.status(403).json({ error: 'Insufficient permissions' })
+
+    await ensureRequiredPermissions()
 
     const permissionsPromise = prismaAny.permission.findMany({
       orderBy: [{ resource: 'asc' }, { action: 'asc' }],
@@ -95,6 +127,8 @@ router.patch('/roles/:role', async (req, res, next) => {
     const authId = cu.authProviderId ?? cu.id
     const canManage = await assertOwnerOrAdmin(authId, tenantId)
     if (!canManage) return res.status(403).json({ error: 'Insufficient permissions' })
+
+    await ensureRequiredPermissions()
 
     const { role } = z.object({ role: z.string().min(2).max(30) }).parse(req.params)
     const { permissions } = updateRolePermissionsSchema.parse(req.body)
