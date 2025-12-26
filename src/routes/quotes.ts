@@ -16,7 +16,12 @@ function computeTotals(
   additionalCharges?: z.infer<typeof additionalChargeSchema>[],
 ) {
   const subtotal = items.reduce((a, it) => a + it.quantity * it.unitPrice, 0)
-  const taxTotal = items.reduce((a, it) => a + (it.taxRate ? it.quantity * it.unitPrice * it.taxRate : 0), 0)
+  /* 
+   * Backend calculation must match frontend:
+   * Tax = Items Tax + 10% of All Additional Charges
+   */
+  const chargesTax = (additionalCharges ?? []).reduce((a, ch) => a + (ch.amount * 0.1), 0)
+  const taxTotal = items.reduce((a, it) => a + (it.taxRate ? it.quantity * it.unitPrice * it.taxRate : 0), 0) + chargesTax
   const discountTotal = items.reduce((a, it) => a + (it.discount ?? 0), 0)
   const chargesTotal = (additionalCharges ?? []).reduce((a, ch) => a + ch.amount, 0)
   const total = subtotal + taxTotal - discountTotal + chargesTotal
@@ -162,14 +167,14 @@ router.post('/', async (req, res, next) => {
         },
         additionalCharges: input.additionalCharges && input.additionalCharges.length > 0
           ? {
-              createMany: {
-                data: input.additionalCharges.map((ch) => ({
-                  type: ch.type,
-                  amount: ch.amount,
-                  tenantId,
-                })),
-              },
-            }
+            createMany: {
+              data: input.additionalCharges.map((ch) => ({
+                type: ch.type,
+                amount: ch.amount,
+                tenantId,
+              })),
+            },
+          }
           : undefined,
       },
       include: {
