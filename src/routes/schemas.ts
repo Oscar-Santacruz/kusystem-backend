@@ -30,6 +30,7 @@ export const branchSchema = z.object({
 export const quoteItemSchema = z.object({
   productId: z.string().optional().nullable(),
   description: z.string().min(1),
+  unit: z.string().max(50).optional().nullable(),
   quantity: z.number().nonnegative(),
   unitPrice: z.number().nonnegative(),
   discount: z.number().nonnegative().optional().nullable(),

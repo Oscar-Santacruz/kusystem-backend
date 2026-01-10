@@ -181,6 +181,7 @@ model QuoteItem {
   productId   String?
   description String
   quantity    Decimal  @db.Decimal(18, 2)
+  unit        String?  @db.VarChar(50)
   unitPrice   Decimal  @db.Decimal(18, 2)
   discount    Decimal? @db.Decimal(18, 2)
   taxRate     Decimal? @db.Decimal(5, 4)

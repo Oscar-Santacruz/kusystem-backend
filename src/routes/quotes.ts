@@ -71,6 +71,7 @@ router.get('/', async (req, res, next) => {
         items: items.map((it: QuoteItem) => ({
           ...it,
           quantity: Number(it.quantity),
+          unit: it.unit,
           unitPrice: Number(it.unitPrice),
           discount: it.discount == null ? null : Number(it.discount),
           taxRate: it.taxRate == null ? null : Number(it.taxRate),
@@ -113,6 +114,7 @@ router.get('/:id', async (req, res, next) => {
       items: items.map((it: QuoteItem) => ({
         ...it,
         quantity: Number(it.quantity),
+        unit: it.unit,
         unitPrice: Number(it.unitPrice),
         discount: it.discount == null ? null : Number(it.discount),
         taxRate: it.taxRate == null ? null : Number(it.taxRate),
@@ -157,6 +159,7 @@ router.post('/', async (req, res, next) => {
             data: input.items.map((it) => ({
               productId: it.productId ?? undefined,
               description: it.description,
+              unit: it.unit ?? undefined,
               quantity: it.quantity,
               unitPrice: it.unitPrice,
               discount: it.discount ?? undefined,
@@ -256,6 +259,7 @@ router.put('/:id', async (req, res, next) => {
             quoteId: id,
             productId: it.productId ?? undefined,
             description: it.description,
+            unit: it.unit ?? undefined,
             quantity: it.quantity,
             unitPrice: it.unitPrice,
             discount: it.discount ?? undefined,
