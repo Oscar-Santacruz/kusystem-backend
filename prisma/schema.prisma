@@ -28,6 +28,7 @@ model Tenant {
   employeeAdvances EmployeeAdvance[]
   employeeSalaryHistory EmployeeSalaryHistory[]
   quoteStatusHistory QuoteStatusHistory[]
+  productTemplates ProductTemplate[]
 
   memberships Membership[]
   invitations Invitation[]
@@ -131,11 +132,30 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  tenantId  BigInt
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId    BigInt
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  templateId  String?
+  template    ProductTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  metadata    Json?
 
   @@index([tenantId])
+  @@index([templateId])
   @@unique([tenantId, sku])
+}
+
+model ProductTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  attributes  Json     
+  products    Product[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenantId    BigInt
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }
 
 model Quote {

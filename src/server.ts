@@ -4,6 +4,7 @@ import cors from 'cors'
 import clientsRouter from './routes/clients.js'
 import productsRouter from './routes/products.js'
 import quotesRouter from './routes/quotes.js'
+import productTemplatesRouter from './routes/productTemplates.js'
 import analyticsRouter from './routes/analytics.js'
 import { clientBranchesByClient, clientBranchesRouter } from './routes/clientBranches.js'
 import swaggerRouter from './docs/swagger.js'
@@ -81,6 +82,7 @@ app.use('/clients', clientsRouter)
 app.use('/clients', clientBranchesByClient) // /clients/:clientId/branches
 app.use('/client-branches', clientBranchesRouter)
 app.use('/products', productsRouter)
+app.use('/product-templates', productTemplatesRouter)
 app.use('/quotes', quotesRouter)
 app.use('/invitations', invitationsRouter)
 app.use('/members', membersRouter)

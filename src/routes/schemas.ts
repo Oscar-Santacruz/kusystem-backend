@@ -13,6 +13,8 @@ export const productSchema = z.object({
   stock: z.number().nonnegative().optional().nullable(),
   minStock: z.number().nonnegative().optional().nullable(),
   imageUrl: z.string().optional().nullable(),
+  templateId: z.string().optional().nullable(),
+  metadata: z.record(z.any()).optional().nullable(), // JSONB
 })
 
 export const clientSchema = z.object({

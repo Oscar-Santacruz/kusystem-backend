@@ -9,6 +9,48 @@ const router = Router()
 
 router.use(requirePermission('products', 'view'))
 
+// Endpoint específico para obtener/crear el producto genérico
+router.get('/generic', async (req, res, next) => {
+  try {
+    const tenantId = getTenantId(res)
+    const SKU = 'CUSTOM-ITEM-001'
+
+    let product = await prisma.product.findFirst({
+      where: { tenantId, sku: SKU },
+    })
+
+    if (!product) {
+      // Crear si no existe
+      product = await prisma.product.create({
+        data: {
+          tenantId,
+          sku: SKU,
+          name: 'Servicio/Producto Personalizado',
+          description: 'Producto genérico para items personalizados en presupuestos.',
+          unit: 'UN',
+          price: 0,
+          cost: 0,
+          taxRate: 0.1,
+          priceIncludesTax: false,
+          stock: null,
+          minStock: null,
+        },
+      })
+    }
+
+    res.json({
+      ...product,
+      price: Number(product.price),
+      cost: product.cost == null ? null : Number(product.cost),
+      taxRate: product.taxRate == null ? null : Number(product.taxRate),
+      stock: product.stock == null ? null : Number(product.stock),
+      minStock: product.minStock == null ? null : Number(product.minStock),
+    })
+  } catch (err) {
+    next(err)
+  }
+})
+
 router.get('/', async (req, res, next) => {
   try {
     const page = Number(req.query.page ?? 1)
@@ -25,14 +67,14 @@ router.get('/', async (req, res, next) => {
       tenantId: tenantId,
       ...(tokens.length
         ? {
-            AND: tokens.map(tok => ({
-              OR: [
-                { name: { contains: tok, mode: 'insensitive' as const } },
-                { sku: { contains: tok, mode: 'insensitive' as const } },
-                { unit: { contains: tok, mode: 'insensitive' as const } },
-              ],
-            })),
-          }
+          AND: tokens.map(tok => ({
+            OR: [
+              { name: { contains: tok, mode: 'insensitive' as const } },
+              { sku: { contains: tok, mode: 'insensitive' as const } },
+              { unit: { contains: tok, mode: 'insensitive' as const } },
+            ],
+          })),
+        }
         : {}),
     }
 
@@ -67,9 +109,9 @@ router.get('/:id', async (req, res, next) => {
     const { id } = req.params
     const tenantId = getTenantId(res)
     const p = await prisma.product.findFirstOrThrow({ where: { id, tenantId } })
-    res.json({ 
-      ...p, 
-      price: Number(p.price), 
+    res.json({
+      ...p,
+      price: Number(p.price),
       cost: p.cost == null ? null : Number(p.cost),
       taxRate: p.taxRate == null ? null : Number(p.taxRate),
       stock: p.stock == null ? null : Number(p.stock),
@@ -85,9 +127,9 @@ router.post('/', async (req, res, next) => {
     const input = productSchema.parse(req.body)
     const tenantId = getTenantId(res)
     const created = await prisma.product.create({ data: { ...input, tenantId } })
-    res.status(201).json({ 
-      ...created, 
-      price: Number(created.price), 
+    res.status(201).json({
+      ...created,
+      price: Number(created.price),
       cost: created.cost == null ? null : Number(created.cost),
       taxRate: created.taxRate == null ? null : Number(created.taxRate),
       stock: created.stock == null ? null : Number(created.stock),
@@ -108,9 +150,9 @@ router.put('/:id', async (req, res, next) => {
       return res.status(404).json({ error: 'Producto no encontrado' })
     }
     const updated = await prisma.product.findFirstOrThrow({ where: { id, tenantId } })
-    res.json({ 
-      ...updated, 
-      price: Number(updated.price), 
+    res.json({
+      ...updated,
+      price: Number(updated.price),
       cost: updated.cost == null ? null : Number(updated.cost),
       taxRate: updated.taxRate == null ? null : Number(updated.taxRate),
       stock: updated.stock == null ? null : Number(updated.stock),
