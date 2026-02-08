@@ -126,7 +126,7 @@ router.post('/', async (req, res, next) => {
   try {
     const input = productSchema.parse(req.body)
     const tenantId = getTenantId(res)
-    const created = await prisma.product.create({ data: { ...input, tenantId } })
+    const created = await prisma.product.create({ data: { ...input, tenantId } as any })
     res.status(201).json({
       ...created,
       price: Number(created.price),
@@ -145,7 +145,7 @@ router.put('/:id', async (req, res, next) => {
     const { id } = req.params
     const input = productSchema.partial().parse(req.body)
     const tenantId = getTenantId(res)
-    const result = await prisma.product.updateMany({ where: { id, tenantId }, data: input })
+    const result = await prisma.product.updateMany({ where: { id, tenantId }, data: input as any })
     if (result.count === 0) {
       return res.status(404).json({ error: 'Producto no encontrado' })
     }
