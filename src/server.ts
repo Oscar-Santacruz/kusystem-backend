@@ -14,6 +14,8 @@ import organizationsRouter from './routes/organizations.js'
 import { invitationsRouter, publicInvitationsRouter } from './routes/invitations.js'
 import membersRouter from './routes/members.js'
 import hrCalendarRouter from './routes/hrCalendar.js'
+import hrEmployeesRouter from './routes/hrEmployees.js'
+import hrPayrollRouter from './routes/hrPayroll.js'
 import rolePermissionsRouter from './routes/rolePermissions.js'
 import { getPrisma } from './prisma.js'
 
@@ -88,6 +90,8 @@ app.use('/invitations', invitationsRouter)
 app.use('/members', membersRouter)
 app.use('/analytics', analyticsRouter)
 app.use('/hr/calendar', hrCalendarRouter)
+app.use('/hr/employees', hrEmployeesRouter)
+app.use('/hr/payroll', hrPayrollRouter)
 app.use('/admin/permissions', rolePermissionsRouter)
 
 app.use(Sentry.Handlers.errorHandler())

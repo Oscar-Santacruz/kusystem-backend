@@ -40,7 +40,7 @@ router.get('/reports', async (req, res, next) => {
   try {
     const tenantId = getTenantId(res)
     const filters = reportFiltersSchema.parse(req.query)
-    
+
     const startDate = new Date(filters.startDate)
     const endDate = new Date(filters.endDate)
     endDate.setHours(23, 59, 59, 999) // Incluir todo el día final
@@ -96,7 +96,7 @@ router.get('/reports', async (req, res, next) => {
     // Agrupar schedules por empleado
     const employeesWithSchedules = employees.map((emp) => {
       const empSchedules = filteredSchedules.filter((s) => s.employeeId === emp.id)
-      
+
       // Calcular métricas del período
       const totalOvertimeMinutes = empSchedules.reduce((sum, s) => sum + s.overtimeMinutes, 0)
       const totalAdvances = empSchedules.reduce((sum, s) => sum + s.advances.length, 0)
@@ -115,8 +115,9 @@ router.get('/reports', async (req, res, next) => {
         phone: emp.phone,
         avatarUrl: emp.avatarUrl,
         department: emp.department,
-        monthlySalary: emp.monthlySalary ? Number(emp.monthlySalary) : null,
-        defaultShiftStart: emp.defaultShiftStart,
+        salaryAmount: emp.salaryAmount ? Number(emp.salaryAmount) : null,
+        salaryType: emp.salaryType,
+        isActive: emp.isActive,
         defaultShiftEnd: emp.defaultShiftEnd,
         // Métricas del período
         totalOvertimeHours: Math.round(totalOvertimeMinutes / 60 * 10) / 10,
@@ -153,11 +154,11 @@ router.get('/reports', async (req, res, next) => {
       totalAdvancesAmount: employeesWithSchedules.reduce((sum, emp) => sum + emp.totalAdvancesAmount, 0),
     }
 
-    totalStats.attendanceRate = totalStats.totalDays > 0 
-      ? Math.round((totalStats.totalAttendance / totalStats.totalDays) * 100 * 10) / 10 
+    totalStats.attendanceRate = totalStats.totalDays > 0
+      ? Math.round((totalStats.totalAttendance / totalStats.totalDays) * 100 * 10) / 10
       : 0
-    totalStats.avgOvertimePerEmployee = totalStats.totalEmployees > 0 
-      ? Math.round((totalStats.totalOvertimeHours / totalStats.totalEmployees) * 10) / 10 
+    totalStats.avgOvertimePerEmployee = totalStats.totalEmployees > 0
+      ? Math.round((totalStats.totalOvertimeHours / totalStats.totalEmployees) * 10) / 10
       : 0
 
     res.json({
@@ -182,7 +183,7 @@ router.get('/week', async (req, res, next) => {
   try {
     const tenantId = getTenantId(res)
     const startParam = req.query.start as string | undefined
-    
+
     if (!startParam) {
       return res.status(400).json({ error: 'Parámetro "start" requerido (YYYY-MM-DD)' })
     }
@@ -214,7 +215,7 @@ router.get('/week', async (req, res, next) => {
     // Agrupar schedules por empleado
     const employeesWithSchedules = employees.map((emp) => {
       const empSchedules = schedules.filter((s) => s.employeeId === emp.id)
-      
+
       // Calcular métricas semanales
       const weeklyOvertimeMinutes = empSchedules.reduce((sum, s) => sum + s.overtimeMinutes, 0)
       const weeklyAdvances = empSchedules.reduce((sum, s) => sum + s.advances.length, 0)
@@ -231,8 +232,9 @@ router.get('/week', async (req, res, next) => {
         email: emp.email,
         phone: emp.phone,
         avatarUrl: emp.avatarUrl,
-        monthlySalary: emp.monthlySalary ? Number(emp.monthlySalary) : null,
-        defaultShiftStart: emp.defaultShiftStart,
+        salaryAmount: emp.salaryAmount ? Number(emp.salaryAmount) : null,
+        salaryType: emp.salaryType,
+        isActive: emp.isActive,
         defaultShiftEnd: emp.defaultShiftEnd,
         weeklyOvertimeHours: Math.round(weeklyOvertimeMinutes / 60 * 10) / 10,
         weeklyAdvances,
@@ -350,7 +352,7 @@ router.put('/week/:employeeId/:date', async (req, res, next) => {
   try {
     const { employeeId, date: dateParam } = req.params
     const tenantId = getTenantId(res)
-    
+
     const input = scheduleUpsertSchema.parse(req.body)
     const date = new Date(dateParam)
 
@@ -444,7 +446,7 @@ router.put('/week/:employeeId/:date', async (req, res, next) => {
 router.get('/employees', async (req, res, next) => {
   try {
     const tenantId = getTenantId(res)
-    
+
     const employees = await prisma.employee.findMany({
       where: { tenantId },
       orderBy: { firstName: 'asc' },
@@ -455,8 +457,9 @@ router.get('/employees', async (req, res, next) => {
         email: true,
         phone: true,
         avatarUrl: true,
-        monthlySalary: true,
-        defaultShiftStart: true,
+        salaryAmount: true,
+        salaryType: true,
+        isActive: true,
         defaultShiftEnd: true,
       },
     })
@@ -464,7 +467,7 @@ router.get('/employees', async (req, res, next) => {
     const result = employees.map((emp) => ({
       ...emp,
       name: `${emp.firstName} ${emp.lastName}`,
-      monthlySalary: emp.monthlySalary ? Number(emp.monthlySalary) : null,
+      salaryAmount: emp.salaryAmount ? Number(emp.salaryAmount) : null,
     }))
 
     res.json(result)

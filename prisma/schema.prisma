@@ -3,78 +3,75 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Tenant {
-  id        BigInt   @id @default(autoincrement())
-  name      String
-  slug      String?  @unique
-  logoUrl   String?
-  createdByUserId String?
-  createdBy User?   @relation("Tenant_createdByUserId", fields: [createdByUserId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  clients   Client[]
-  branches  ClientBranch[]
-  products  Product[]
-  quotes    Quote[]
-  items     QuoteItem[]
-  charges   QuoteAdditionalCharge[]
-  employees Employee[]
-  employeeSchedules EmployeeSchedule[]
-  employeeAdvances EmployeeAdvance[]
+  id                    BigInt                  @id @default(autoincrement())
+  name                  String
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  slug                  String?                 @unique
+  createdByUserId       String?
+  logoUrl               String?
+  clients               Client[]
+  branches              ClientBranch[]
+  employees             Employee[]
+  employeeAdvances      EmployeeAdvance[]
   employeeSalaryHistory EmployeeSalaryHistory[]
-  quoteStatusHistory QuoteStatusHistory[]
-  productTemplates ProductTemplate[]
-
-  memberships Membership[]
-  invitations Invitation[]
-  rolePermissions RolePermission[]
+  employeeSchedules     EmployeeSchedule[]
+  invitations           Invitation[]
+  memberships           Membership[]
+  products              Product[]
+  productTemplates      ProductTemplate[]
+  quotes                Quote[]
+  charges               QuoteAdditionalCharge[]
+  items                 QuoteItem[]
+  quoteStatusHistory    QuoteStatusHistory[]
+  rolePermissions       RolePermission[]
+  employeePayments      EmployeePayment[]
+  createdBy             User?                   @relation("Tenant_createdByUserId", fields: [createdByUserId], references: [id])
 }
 
 model User {
-  id             String   @id @default(cuid())
-  authProviderId String   @unique // Auth0 sub
-  email          String   @unique
-  name           String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  memberships Membership[]
-  createdTenants Tenant[] @relation("Tenant_createdByUserId")
+  id                 String       @id @default(cuid())
+  authProviderId     String       @unique
+  email              String       @unique
+  name               String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
   createdInvitations Invitation[] @relation("Invitation_createdByUser")
+  memberships        Membership[]
+  createdTenants     Tenant[]     @relation("Tenant_createdByUserId")
 }
 
 model Membership {
-  id            String   @id @default(cuid())
-  userId        String
-  tenantId      BigInt
-  role          String   @db.VarChar(20) // 'owner' | 'admin' | 'member'
-  createdAt     DateTime @default(now())
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  userId    String
+  tenantId  BigInt
+  role      String   @db.VarChar(20)
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, tenantId])
   @@index([tenantId])
 }
 
 model Invitation {
-  id         String   @id @default(cuid())
-  tenantId   BigInt
-  email      String
-  role       String   @db.VarChar(20)
-  token      String   @unique
-  expiresAt  DateTime
-  acceptedAt DateTime?
+  id              String    @id @default(cuid())
+  tenantId        BigInt
+  email           String
+  role            String    @db.VarChar(20)
+  token           String    @unique
+  expiresAt       DateTime
+  acceptedAt      DateTime?
   createdByUserId String
-  createdAt  DateTime @default(now())
-
-  tenant  Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdBy User @relation("Invitation_createdByUser", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  createdBy       User      @relation("Invitation_createdByUser", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([email])
@@ -86,16 +83,15 @@ model Client {
   taxId     String?        @db.VarChar(100)
   phone     String?        @db.VarChar(100)
   email     String?        @db.VarChar(200)
-  branches  ClientBranch[]
-  quotes    Quote[]        @relation("ClientQuotes")
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
-
   tenantId  BigInt
   tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branches  ClientBranch[]
+  quotes    Quote[]        @relation("ClientQuotes")
 
-  @@index([tenantId])
   @@unique([tenantId, taxId])
+  @@index([tenantId])
 }
 
 model ClientBranch {
@@ -103,96 +99,88 @@ model ClientBranch {
   clientId  String
   name      String
   address   String?
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  quotes    Quote[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   tenantId  BigInt
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quotes    Quote[]
 
   @@index([tenantId])
 }
 
 model Product {
-  id          String   @id @default(cuid())
-  sku         String?  @db.VarChar(100)
-  name        String
-  description String?
-  barcode     String?  @db.VarChar(100)
-  unit        String?  @db.VarChar(50)
-  price       Decimal  @db.Decimal(18, 2)
-  cost        Decimal? @db.Decimal(18, 2)
-  taxRate     Decimal? @db.Decimal(5, 4)
-  priceIncludesTax Boolean @default(false)
-  stock       Decimal? @db.Decimal(18, 2)
-  minStock    Decimal? @db.Decimal(18, 2)
-  imageUrl    String?
-  items       QuoteItem[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String           @id @default(cuid())
+  sku              String?          @db.VarChar(100)
+  name             String
+  unit             String?          @db.VarChar(50)
+  price            Decimal          @db.Decimal(18, 2)
+  taxRate          Decimal?         @db.Decimal(5, 4)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  priceIncludesTax Boolean          @default(false)
+  tenantId         BigInt
+  description      String?
+  barcode          String?          @db.VarChar(100)
+  cost             Decimal?         @db.Decimal(18, 2)
+  stock            Decimal?         @db.Decimal(18, 2)
+  minStock         Decimal?         @db.Decimal(18, 2)
+  imageUrl         String?
+  metadata         Json?
+  templateId       String?
+  template         ProductTemplate? @relation(fields: [templateId], references: [id])
+  tenant           Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  items            QuoteItem[]
 
-  tenantId    BigInt
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  
-  templateId  String?
-  template    ProductTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  metadata    Json?
-
+  @@unique([tenantId, sku])
   @@index([tenantId])
   @@index([templateId])
-  @@unique([tenantId, sku])
 }
 
 model ProductTemplate {
-  id          String   @id @default(cuid())
-  name        String
-  attributes  Json     
-  products    Product[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  tenantId    BigInt
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id         String    @id @default(cuid())
+  name       String
+  attributes Json
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  tenantId   BigInt
+  products   Product[]
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
 }
 
 model Quote {
-  id            String      @id @default(cuid())
-  number        String?     @default(dbgenerated("nextval('quote_number_seq')::text"))
-  status        String?     @db.VarChar(20)
-  customerId    String?
-  customerName  String
-  // Sucursal seleccionada para el presupuesto
-  branchId      String?
-  branchName    String?
-  issueDate     DateTime?
-  dueDate       DateTime?
-  currency      String?     @db.VarChar(10)
-  notes         String?
-  // Mostrar notas en impresión/PDF
-  printNotes    Boolean?    @default(true)
-  // Enlace público
-  publicId      String?     @unique @default(uuid())
-  publicEnabled Boolean     @default(false)
-  items         QuoteItem[]
+  id                String                  @id @default(cuid())
+  number            String?                 @default(dbgenerated("(nextval('quote_number_seq'::regclass))::text"))
+  status            String?                 @db.VarChar(20)
+  customerId        String?
+  customerName      String
+  issueDate         DateTime?
+  dueDate           DateTime?
+  currency          String?                 @db.VarChar(10)
+  notes             String?
+  subtotal          Decimal?                @db.Decimal(18, 2)
+  taxTotal          Decimal?                @db.Decimal(18, 2)
+  discountTotal     Decimal?                @db.Decimal(18, 2)
+  total             Decimal?                @db.Decimal(18, 2)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  branchId          String?
+  branchName        String?
+  printNotes        Boolean?                @default(true)
+  publicEnabled     Boolean                 @default(false)
+  publicId          String?                 @unique @default(uuid())
+  tenantId          BigInt
+  branch            ClientBranch?           @relation(fields: [branchId], references: [id])
+  customer          Client?                 @relation("ClientQuotes", fields: [customerId], references: [id])
+  tenant            Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   additionalCharges QuoteAdditionalCharge[]
-  statusHistory QuoteStatusHistory[]
-  subtotal      Decimal?    @db.Decimal(18, 2)
-  taxTotal      Decimal?    @db.Decimal(18, 2)
-  discountTotal Decimal?    @db.Decimal(18, 2)
-  total         Decimal?    @db.Decimal(18, 2)
-  customer      Client?     @relation("ClientQuotes", fields: [customerId], references: [id], onDelete: SetNull)
-  branch        ClientBranch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  items             QuoteItem[]
+  statusHistory     QuoteStatusHistory[]
 
-  tenantId      BigInt
-  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
   @@unique([tenantId, number])
+  @@index([tenantId])
 }
 
 model QuoteItem {
@@ -201,14 +189,13 @@ model QuoteItem {
   productId   String?
   description String
   quantity    Decimal  @db.Decimal(18, 2)
-  unit        String?  @db.VarChar(50)
   unitPrice   Decimal  @db.Decimal(18, 2)
   discount    Decimal? @db.Decimal(18, 2)
   taxRate     Decimal? @db.Decimal(5, 4)
-  quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-
   tenantId    BigInt
+  unit        String?  @db.VarChar(50)
+  product     Product? @relation(fields: [productId], references: [id])
+  quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
@@ -219,9 +206,8 @@ model QuoteAdditionalCharge {
   quoteId  String
   type     String
   amount   Decimal @db.Decimal(18, 2)
-  quote    Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-
   tenantId BigInt
+  quote    Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
@@ -230,119 +216,115 @@ model QuoteAdditionalCharge {
 model QuoteStatusHistory {
   id         String   @id @default(cuid())
   quoteId    String
-  quote      Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   fromStatus String?  @db.VarChar(20)
   toStatus   String   @db.VarChar(20)
-  reason     String?  // Motivo del cambio
-  changedBy  String?  // Usuario que hizo el cambio (email o nombre)
+  reason     String?
+  changedBy  String?
   changedAt  DateTime @default(now())
   tenantId   BigInt
+  quote      Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([quoteId])
   @@index([tenantId])
 }
 
-enum DayType {
-  LABORAL
-  AUSENTE
-  LIBRE
-  NO_LABORAL
-  FERIADO
-}
-
 model Employee {
-  id                String   @id @default(cuid())
+  id                String                  @id @default(cuid())
   tenantId          BigInt
   firstName         String
   lastName          String
-  email             String?  @db.VarChar(200)
-  phone             String?  @db.VarChar(50)
+  email             String?                 @db.VarChar(200)
+  phone             String?                 @db.VarChar(50)
   avatarUrl         String?
-  department        String?  @db.VarChar(50)
-  monthlySalary     Decimal? @db.Decimal(18, 2)
-  defaultShiftStart String?  @db.VarChar(5)
-  defaultShiftEnd   String?  @db.VarChar(5)
+  department        String?                 @db.VarChar(50)
+  salaryType        String                  @default("MONTHLY") @db.VarChar(20) // 'MONTHLY' | 'WEEKLY' | 'DAILY'
+  salaryAmount      Decimal?                @db.Decimal(18, 2)
+  isActive          Boolean                 @default(true)
+  defaultShiftEnd   String?                 @db.VarChar(5)
   notes             String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  tenant      Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  schedules   EmployeeSchedule[]
-  advances    EmployeeAdvance[]
-  salaries    EmployeeSalaryHistory[]
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  tenant            Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  advances          EmployeeAdvance[]
+  salaries          EmployeeSalaryHistory[]
+  schedules         EmployeeSchedule[]
+  payments          EmployeePayment[]
 
   @@index([tenantId])
   @@index([tenantId, department])
 }
 
 model EmployeeSchedule {
-  id             String   @id @default(cuid())
-  tenantId       BigInt
-  employeeId     String
-  date           DateTime @db.Date
-  clockIn        String?  @db.VarChar(5)
-  clockOut       String?  @db.VarChar(5)
-  overtimeMinutes Int     @default(0)
-  dayType        DayType  @default(LABORAL)
-  notes          String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  advances EmployeeAdvance[]
+  id              String            @id @default(cuid())
+  tenantId        BigInt
+  employeeId      String
+  date            DateTime          @db.Date
+  clockIn         String?           @db.VarChar(5)
+  clockOut        String?           @db.VarChar(5)
+  overtimeMinutes Int               @default(0)
+  dayType         DayType           @default(LABORAL)
+  notes           String?
+  paymentId       String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  advances        EmployeeAdvance[]
+  employee        Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payment         EmployeePayment?  @relation(fields: [paymentId], references: [id])
 
   @@unique([tenantId, employeeId, date])
   @@index([tenantId, date])
+  @@index([paymentId])
 }
 
 model EmployeeAdvance {
-  id         String   @id @default(cuid())
+  id         String            @id @default(cuid())
   tenantId   BigInt
   employeeId String
   scheduleId String?
-  amount     Decimal  @db.Decimal(18, 2)
-  currency   String   @default("PYG") @db.VarChar(10)
+  amount     Decimal           @db.Decimal(18, 2)
+  currency   String            @default("PYG") @db.VarChar(10)
   reason     String?
-  issuedAt   DateTime @default(now())
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  tenant   Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  employee Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  schedule EmployeeSchedule?  @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  paymentId  String?
+  issuedAt   DateTime          @default(now())
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  employee   Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  schedule   EmployeeSchedule? @relation(fields: [scheduleId], references: [id])
+  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payment    EmployeePayment?  @relation(fields: [paymentId], references: [id])
 
   @@index([tenantId])
   @@index([employeeId])
   @@index([scheduleId])
+  @@index([paymentId])
 }
 
 model EmployeeSalaryHistory {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   tenantId      BigInt
   employeeId    String
-  monthlySalary Decimal  @db.Decimal(18, 2)
+  salaryType    String    @default("MONTHLY") @db.VarChar(20)
+  salaryAmount  Decimal   @db.Decimal(18, 2)
   effectiveFrom DateTime
   effectiveTo   DateTime?
   notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([employeeId])
 }
 
 model Permission {
-  id          String   @id @default(cuid())
-  resource    String
-  action      String
-  description String?
-  createdAt   DateTime @default(now())
-
+  id              String           @id @default(cuid())
+  resource        String
+  action          String
+  description     String?
+  createdAt       DateTime         @default(now())
   rolePermissions RolePermission[]
 
   @@unique([resource, action])
@@ -355,10 +337,45 @@ model RolePermission {
   role         String     @db.VarChar(20)
   permissionId String
   createdAt    DateTime   @default(now())
-
-  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, role, permissionId])
   @@index([tenantId, role])
+}
+
+model EmployeePayment {
+  id                 String             @id @default(cuid())
+  tenantId           BigInt
+  employeeId         String
+  startDate          DateTime           @db.Date
+  endDate            DateTime           @db.Date
+  paymentDate        DateTime           @default(now())
+  totalDaysWorked    Decimal            @db.Decimal(5, 2)
+  totalOvertimeHours Decimal            @db.Decimal(5, 2)
+  baseAmount         Decimal            @db.Decimal(18, 2)
+  overtimeAmount     Decimal            @db.Decimal(18, 2)
+  advancesAmount     Decimal            @db.Decimal(18, 2)
+  totalAmount        Decimal            @db.Decimal(18, 2)
+  receiptNumber      String?
+  notes              String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  
+  employee           Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  tenant             Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  schedules          EmployeeSchedule[]
+  advances           EmployeeAdvance[]
+
+  @@index([tenantId])
+  @@index([employeeId])
+}
+
+enum DayType {
+  LABORAL
+  AUSENTE
+  LIBRE
+  NO_LABORAL
+  FERIADO
+  MEDIO_DIA
 }
