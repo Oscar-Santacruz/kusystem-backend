@@ -19,7 +19,7 @@ const weekInitializerSchema = z.object({
 const scheduleUpsertSchema = z.object({
   clockIn: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
   clockOut: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
-  dayType: z.enum(['LABORAL', 'AUSENTE', 'LIBRE', 'NO_LABORAL', 'FERIADO']),
+  dayType: z.enum(['LABORAL', 'AUSENTE', 'LIBRE', 'NO_LABORAL', 'FERIADO', 'MEDIO_DIA']),
   overtimeMinutes: z.number().int().min(0).optional().default(0),
   advanceAmount: z.number().min(0).optional().nullable(),
   notes: z.string().optional().nullable(),
@@ -192,12 +192,6 @@ router.get('/week', async (req, res, next) => {
     const endDate = new Date(startDate)
     endDate.setDate(endDate.getDate() + 6) // Lunes a Domingo
 
-    // Obtener empleados
-    const employees = await prisma.employee.findMany({
-      where: { tenantId },
-      orderBy: { firstName: 'asc' },
-    })
-
     // Obtener horarios de la semana
     const schedules = await prisma.employeeSchedule.findMany({
       where: {
@@ -210,6 +204,21 @@ router.get('/week', async (req, res, next) => {
       include: {
         advances: true,
       },
+    })
+
+    // Extraer IDs de empleados que tienen al menos un registro en esta semana
+    const employeeIdsWithSchedules = [...new Set(schedules.map(s => s.employeeId))]
+
+    // Obtener empleados: aquellos que están ACTIVOS o que tienen HORARIOS en la semana
+    const employees = await prisma.employee.findMany({
+      where: {
+        tenantId,
+        OR: [
+          { isActive: true },
+          { id: { in: employeeIdsWithSchedules } }
+        ]
+      },
+      orderBy: { firstName: 'asc' },
     })
 
     // Agrupar schedules por empleado
