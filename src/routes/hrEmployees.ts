@@ -32,6 +32,7 @@ router.get('/', async (req, res, next) => {
 
         const result = employees.map(emp => ({
             ...emp,
+            name: `${emp.firstName} ${emp.lastName}`,
             salaryAmount: emp.salaryAmount ? Number(emp.salaryAmount) : null,
         }))
 
