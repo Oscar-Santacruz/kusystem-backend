@@ -3,6 +3,7 @@
 exports.config = {
   app_name: [process.env.NEW_RELIC_APP_NAME || 'kusystem-backend'],
   license_key: process.env.NEW_RELIC_LICENSE_KEY || '',
+  agent_enabled: !!process.env.NEW_RELIC_LICENSE_KEY,
   logging: {
     level: 'info',
   },
