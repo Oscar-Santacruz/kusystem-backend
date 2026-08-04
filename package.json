@@ -15,6 +15,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "prisma db seed",
+    "db:compare:migration": "node scripts/compare-neon-supabase.mjs",
+    "db:sync:missing": "node scripts/sync-missing-neon-to-supabase.mjs",
     "openapi:generate": "tsx src/docs/openapi.ts"
   },
   "keywords": [
